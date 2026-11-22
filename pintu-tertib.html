@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pintu Tertib</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE occasion: an escape-room adventure for SMA students, playful but tidy
+   IDEA a school after hours: four locked rooms, each sealed by puzzles about wudhu and the research behind it
+   PICTURE a top-down canvas room with a walking student, glowing objects to inspect and a padlocked door
+   COLOUR deep night-navy housing, water blue for wudhu, key gold for seals, coral for wrong, leaf green for right
+   TYPE Baloo 2 display + Nunito text
+   LAYOUT one centred 560px column: HUD on top, square room in the middle, d-pad and inspect button at the foot */
+:root{color-scheme:light;--ink:#17324a;--water:#1fa2d6;--gold:#ffc93c;--bad:#ef5b5b;--ok:#22a35a;--paper:#fffdf7;--mute:#55697a;--night:#10263a}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0;overflow:hidden}
+[hidden]{display:none!important}
+body{background:radial-gradient(circle at 50% 30%,#1d3f5e,var(--night) 70%);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit}
+h1,h2,h3{font-family:'Baloo 2',Nunito,system-ui,sans-serif;line-height:1.05;letter-spacing:-.02em;margin:0;text-wrap:balance}
+svg{display:block}
+.ic{width:22px;height:22px;fill:currentColor;flex:none}
+#app{height:100%;max-width:560px;margin:0 auto;padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:8px;overflow:hidden;overflow:clip}
+.card{background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 #0a1826}
+.hud{display:flex;align-items:center;gap:10px;padding:8px 10px}
+.hl{flex:1;min-width:0}
+.hl small{display:block;font-size:12.5px;font-weight:800;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl b{display:block;font:800 18px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr{display:grid;justify-items:end;gap:3px;flex:none}
+.seals{display:flex;gap:2px}
+.seals svg{width:18px;height:18px;fill:#c9d2db}
+.seals svg.on{fill:var(--gold)}
+.seals svg.dr{fill:#9fb0bf}
+.seals svg.dr.on{fill:var(--ok)}
+.hs{display:flex;align-items:center;gap:4px;font:800 18px/1 'Baloo 2',Nunito,system-ui,sans-serif;white-space:nowrap}
+.hs svg{width:19px;height:19px;fill:var(--gold)}
+.mute{width:40px;height:40px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 3px 0 var(--ink);cursor:pointer}
+#stage{flex:1;min-height:0;position:relative;display:grid;place-items:center}
+#cv{border-radius:18px;border:3px solid #0a1826;box-shadow:0 8px 0 #0a1826,0 0 0 6px rgba(31,162,214,.18);touch-action:none;cursor:pointer;background:#0a1826}
+#toast{position:absolute;left:50%;bottom:14px;transform:translate(-50%,20px);opacity:0;transition:.3s;background:var(--ink);color:#fff;font:800 15px/1.2 Nunito,system-ui,sans-serif;padding:9px 14px;border-radius:12px;pointer-events:none;max-width:90%;text-align:center;z-index:3}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.hint{margin:0;text-align:center;color:#d6e6f3;font-weight:700;font-size:14px;min-height:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint b{color:var(--gold)}
+.ctrl{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 6px}
+.dpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,46px);gap:4px}
+.dpad button{border:3px solid var(--ink);border-radius:14px;background:#e9f6fc;box-shadow:0 3px 0 #0a1826;display:grid;place-items:center;touch-action:none;cursor:pointer}
+.dpad button:active,.dpad button.on{background:var(--water);transform:translateY(2px);box-shadow:0 1px 0 #0a1826}
+.dpad svg{width:24px;height:24px;fill:var(--ink)}
+.dpad [data-d=up]{grid-area:1/2}.dpad [data-d=left]{grid-area:2/1}.dpad [data-d=right]{grid-area:2/3}.dpad [data-d=down]{grid-area:3/2}
+.act{width:112px;height:112px;border-radius:50%;border:3px solid var(--ink);background:var(--gold);box-shadow:0 5px 0 #0a1826;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:800 17px/1 'Baloo 2',Nunito,system-ui,sans-serif;cursor:pointer}
+.act svg{width:34px;height:34px;fill:var(--ink)}
+.act:disabled{background:#b9c6d2;opacity:.7;cursor:default}
+.act:not(:disabled){animation:pulse 1.2s ease-in-out infinite alternate}
+@keyframes pulse{to{box-shadow:0 5px 0 #0a1826,0 0 0 8px rgba(255,201,60,.45)}}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:11px 16px;font:800 18px/1 'Baloo 2',Nunito,system-ui,sans-serif;border:3px solid var(--ink);border-radius:14px;background:var(--gold);box-shadow:0 4px 0 var(--ink);cursor:pointer}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:#fff}
+.btn.blue{background:var(--water);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--ink)}
+.ov{position:fixed;inset:0;z-index:10;display:none;place-items:center;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));background:rgba(8,22,36,.62);overflow:auto}
+.ov.on{display:grid;animation:fade .25s}
+@keyframes fade{from{opacity:0}}
+.ov>.card{width:100%;max-width:480px;padding:16px;animation:rise .3s ease-out}
+@keyframes rise{from{transform:translateY(14px)}}
+#ovTitle{background:linear-gradient(rgba(8,22,36,.25),rgba(8,22,36,.75));align-content:space-between;justify-items:center;gap:12px}
+.logo{text-align:center}
+.logo h1{font-size:clamp(42px,12vw,58px);font-weight:800}
+.logo h1 span{color:var(--water)}
+.logo p{margin:0 0 10px;font:700 18px/1.2 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.chip{font:800 13px/1 Nunito,system-ui,sans-serif;padding:7px 10px;border-radius:999px;background:#e3f4fb;border:2px solid var(--ink)}
+.materi{margin:10px 0 0;font-size:14px;color:var(--mute);text-align:center}
+.materi b{color:var(--ink)}
+.tfoot{width:100%;max-width:480px;display:grid;gap:10px}
+details.how{padding:0}
+details.how summary{cursor:pointer;list-style:none;padding:13px 16px;font:800 17px/1.2 'Baloo 2',Nunito,system-ui,sans-serif;display:flex;justify-content:space-between}
+details.how summary::-webkit-details-marker{display:none}
+details.how summary::after{content:"+";font-size:22px;line-height:.8}
+details.how[open] summary::after{content:"–"}
+details.how ul{margin:0;padding:0 16px 14px 32px;font-size:14.5px;max-height:36vh;overflow:auto}
+details.how li{margin:4px 0}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-weight:800;font-size:15px}
+.field input{font:700 16px Nunito,system-ui,sans-serif;padding:12px 14px;border:3px solid var(--ink);border-radius:14px;background:#fff;color:var(--ink);width:100%;user-select:text}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.err{color:#c0392b;font-weight:800;font-size:14px;min-height:20px;margin:0 0 6px}
+.lvl{display:inline-block;font:800 13px/1 Nunito,system-ui,sans-serif;padding:6px 10px;border-radius:999px;background:var(--ink);color:#fff;margin-bottom:8px}
+.intro h2{font-size:clamp(32px,9vw,42px)}
+.intro p{margin:8px 0 0;font-size:16px;font-weight:600}
+.irow{display:flex;gap:8px;margin:14px 0}
+.irow div{flex:1;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:8px;text-align:center;font-size:12.5px;font-weight:700;color:var(--mute)}
+.irow b{display:block;font:800 22px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink)}
+.panel{max-height:calc(100svh - 40px);overflow:auto}
+.ph{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ph b{font:800 18px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;flex:1}
+.tag{font:800 12.5px/1 Nunito,system-ui,sans-serif;padding:6px 9px;border-radius:999px;border:2px solid var(--ink);background:#e3f4fb;white-space:nowrap}
+.tag.g-bs{background:#fff1c2}.tag.g-or{background:#e5f7ea}.tag.g-mt{background:#fde4ff}.tag.g-cd{background:#ffe3d6}
+.x{width:40px;height:40px;border-radius:12px;border:3px solid var(--ink);background:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.q{margin:0 0 12px;font-size:17px;font-weight:800;line-height:1.45}
+.opts{display:grid;gap:9px}
+.opt{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center;text-align:left;width:100%;min-height:54px;padding:9px 12px;border:3px solid var(--ink);border-radius:15px;background:#fff;box-shadow:0 3px 0 var(--ink);font:700 15.5px/1.35 Nunito,system-ui,sans-serif;cursor:pointer}
+.opt b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#bfe8f7;border:2px solid var(--ink);font:800 17px/1 'Baloo 2',Nunito,system-ui,sans-serif}
+.opt.gone{opacity:.35;background:#ffe9e9;border-color:var(--bad);box-shadow:none;text-decoration:line-through;cursor:default}
+.bsrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.bsb{min-height:96px;border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:800 23px/1 'Baloo 2',Nunito,system-ui,sans-serif;cursor:pointer}
+.bsb svg{width:32px;height:32px;fill:var(--ink)}
+.bsb.t{background:#c9f0d6}.bsb.f{background:#ffd3d3}
+.bsb.gone{opacity:.35;box-shadow:none;cursor:default}
+.msg{margin:10px 0 0;font-weight:800;font-size:15px;color:#c0392b;min-height:0}
+.msg:empty{display:none}
+.msg{background:#fff0ef;border:2px solid var(--bad);border-radius:12px;padding:8px 10px}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.slots{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px;counter-reset:s}
+.slots button{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center;width:100%;min-height:44px;padding:6px 10px;text-align:left;border:2px dashed #8aa0b3;border-radius:12px;background:#f4f8fb;font:700 15px/1.25 Nunito,system-ui,sans-serif;color:var(--mute);cursor:pointer}
+.slots button::before{content:counter(s);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#dfe8ef;font:800 15px/1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink)}
+.slots button.f{border:2px solid var(--ink);background:#fff;color:var(--ink)}
+.slots button.f::before{background:var(--water);color:#fff}
+.slots button.lk{border-color:var(--ok);background:#e5f7ea;cursor:default}
+.slots button.lk::before{background:var(--ok)}
+.slots button.bad{border-color:var(--bad);background:#ffe1e1}
+.pool{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.pool button{border:2px solid var(--ink);border-radius:12px;background:#fff8dc;box-shadow:0 3px 0 var(--ink);padding:8px 11px;font:800 14.5px/1.2 Nunito,system-ui,sans-serif;cursor:pointer}
+.sub{margin:0 0 6px;font-size:13px;font-weight:800;color:var(--mute)}
+.mt{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px;margin-bottom:12px}
+.mt div{display:grid;gap:7px;align-content:start}
+.mb{position:relative;min-height:58px;padding:8px 10px 8px 12px;text-align:left;border:2px solid var(--ink);border-radius:12px;background:#fff;box-shadow:0 3px 0 var(--ink);font:800 14px/1.25 Nunito,system-ui,sans-serif;cursor:pointer}
+.mb.L{background:#fde4ff;font-size:15.5px}
+.mb.sel{outline:3px solid var(--water);outline-offset:1px}
+.mb i{position:absolute;top:-8px;right:-6px;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:800 13px/1 'Baloo 2',Nunito,system-ui,sans-serif;font-style:normal;color:#fff}
+.mb.lk{border-color:var(--ok);background:#e5f7ea;cursor:default}
+.mb.bad{border-color:var(--bad);background:#ffe1e1}
+.clue{margin:0 0 12px;padding-left:20px;font-weight:700;font-size:15px}
+.clue li{margin:4px 0}
+.wheels{display:flex;justify-content:center;gap:10px;margin-bottom:12px}
+.wheel{display:grid;gap:4px;justify-items:center}
+.wheel button{width:52px;height:40px;border:3px solid var(--ink);border-radius:12px;background:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 0 var(--ink)}
+.wheel button svg{width:22px;height:22px;fill:var(--ink)}
+.wheel b{width:56px;height:64px;display:grid;place-items:center;border-radius:12px;background:var(--ink);color:var(--gold);font:800 38px/1 'Baloo 2',Nunito,system-ui,sans-serif;box-shadow:inset 0 -6px 0 rgba(255,255,255,.08)}
+.okh{display:flex;align-items:center;gap:10px}
+.okh svg{width:40px;height:40px;padding:6px;border-radius:12px;background:var(--ok);fill:#fff;flex:none}
+.okh h3{font-size:26px;flex:1}
+.okh em{font-style:normal;font:800 18px/1 'Baloo 2',Nunito,system-ui,sans-serif;background:var(--ink);color:#fff;padding:6px 10px;border-radius:10px;white-space:nowrap}
+.lab{margin:8px 0 2px;font-weight:800;color:var(--mute);font-size:14px}
+.ex{margin:0 0 14px;font-size:15.5px}
+.ex2{margin:0 0 12px;font-size:14.5px;color:var(--mute);font-weight:700}
+.rap h2{font-size:clamp(30px,8vw,38px)}
+.who2{margin:6px 0 0;color:var(--mute);font-weight:700}
+.score2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;margin:12px 0 4px}
+.nilai{font:800 clamp(64px,20vw,86px)/.9 'Baloo 2',Nunito,system-ui,sans-serif}
+.pred{display:inline-block;font:800 16px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;padding:7px 12px;border-radius:12px;background:var(--gold);border:2px solid var(--ink)}
+.pred+p{margin:6px 0 0;font-size:14px;color:var(--mute);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.stats div{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:8px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.stats b{display:block;font:800 23px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink);white-space:nowrap}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:14px}
+.bar b{font-weight:800}
+.bar span{color:var(--mute);font-weight:700;white-space:nowrap}
+.bar .tr{grid-column:1/-1;height:14px;border-radius:9px;background:#e6edf2;border:2px solid var(--ink);overflow:hidden}
+.bar .tr i{display:block;height:100%;background:var(--ok)}
+.bar .tr i.mid{background:var(--gold)}.bar .tr i.low{background:var(--bad)}
+.kode{margin:12px 0 0;font-size:13px;color:var(--mute);font-weight:700}
+.kode b{font:800 16px 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink);letter-spacing:.06em}
+.rev{margin-top:10px}
+.rev summary{cursor:pointer;font:800 17px/1.2 'Baloo 2',Nunito,system-ui,sans-serif}
+.rev ol{margin:10px 0 0;padding-left:20px;font-size:14.5px}
+.rev li{margin-bottom:12px}
+.rev p{margin:2px 0}
+.rev .r{color:var(--ok);font-weight:800}
+#copyBox{width:100%;height:150px;font:13px/1.4 Nunito,system-ui,sans-serif;border:2px solid var(--ink);border-radius:12px;padding:8px;margin-top:8px;user-select:text}
+.note{margin:8px 0 0;font-size:14px;font-weight:700;color:var(--ok);text-align:center;min-height:20px}
+.endg{display:grid;gap:10px;margin-top:12px}
+@media (max-height:700px){.dpad{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,40px)}.act{width:94px;height:94px}.hint{font-size:13px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+ <header class="card hud">
+  <div class="hl"><small id="hLvl">Level 1 dari 4</small><b id="hRoom">Ruang Kelas I</b></div>
+  <div class="hr"><div class="seals" id="hSeals" aria-label="Segel"></div>
+  <div class="hs"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.4 7L12 17.7 5.8 21.2l1.4-7L2 9.4l7-.8z"/></svg><span id="hScore">0</span></div></div>
+  <button class="mute" aria-label="Suara"></button>
+ </header>
+ <div id="stage"><canvas id="cv" aria-label="Ruangan escape room"></canvas><div id="toast" role="status" aria-live="polite"></div></div>
+ <p class="hint" id="hint">Ketuk lantai untuk berjalan</p>
+ <div class="ctrl">
+  <div class="dpad">
+   <button data-d="up" aria-label="Atas"><svg viewBox="0 0 24 24"><path d="M12 6 4 16h16z"/></svg></button>
+   <button data-d="left" aria-label="Kiri"><svg viewBox="0 0 24 24"><path d="M6 12l10-8v16z"/></svg></button>
+   <button data-d="right" aria-label="Kanan"><svg viewBox="0 0 24 24"><path d="M18 12 8 4v16z"/></svg></button>
+   <button data-d="down" aria-label="Bawah"><svg viewBox="0 0 24 24"><path d="M12 18 4 8h16z"/></svg></button>
+  </div>
+  <button class="act" id="act" disabled><svg viewBox="0 0 24 24"><path d="M10 3a7 7 0 1 0 4.2 12.6l5.6 5.6 1.4-1.4-5.6-5.6A7 7 0 0 0 10 3zm0 2.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"/></svg><span>Periksa</span></button>
+ </div>
+</div>
+
+<div class="ov" id="ovTitle">
+ <div class="card logo" style="max-width:480px;width:100%;padding:16px">
+  <h1>Pintu <span>Tertib</span></h1>
+  <p>Escape Room Wudhu</p>
+  <div class="chips" id="chips"></div>
+  <p class="materi" id="materi"></p>
+ </div>
+ <div class="tfoot">
+  <details class="card how"><summary>Cara main</summary>
+   <ul>
+    <li>Kamu terkunci di sekolah setelah bel pulang. Ada 4 ruangan, masing-masing dengan pintu bergembok.</li>
+    <li>Jalan dengan mengetuk lantai, tombol arah, atau tombol panah dan WASD di keyboard.</li>
+    <li>Dekati benda bertanda tanya, lalu tekan Periksa (atau E). Mengetuk benda langsung juga bisa: tokohmu berjalan ke sana sendiri.</li>
+    <li>Tiap benda menyimpan teka-teki: pilihan ganda, benar/salah, menyusun urutan, atau memasangkan. Jawaban benar membuka satu segel.</li>
+    <li>Setelah semua segel terbuka, pecahkan kode gembok pintu untuk lanjut ke ruangan berikutnya.</li>
+    <li>Tidak ada batas waktu. Salah boleh mencoba lagi dengan petunjuk, tapi nilai di rapor dihitung dari percobaan pertama.</li>
+   </ul>
+  </details>
+  <div style="display:flex;gap:10px"><button class="btn" id="bStart">Mulai</button><button class="mute" aria-label="Suara" style="width:50px;height:50px"></button></div>
+ </div>
+</div>
+
+<div class="ov" id="ovForm"><form class="card" id="fForm" novalidate>
+ <h2 style="font-size:30px;margin-bottom:4px">Data pemain</h2>
+ <p style="margin:0 0 14px;color:var(--mute);font-weight:700">Isi dulu supaya rapormu tercatat.</p>
+ <div class="field"><label for="iNama">Nama lengkap</label><input id="iNama" autocomplete="name" maxlength="40" placeholder="Contoh: Aisyah Putri"></div>
+ <div class="two">
+  <div class="field"><label for="iKelas">Kelas</label><input id="iKelas" maxlength="12" placeholder="XI-3"></div>
+  <div class="field"><label for="iAbsen">No. absen</label><input id="iAbsen" inputmode="numeric" maxlength="3" placeholder="12"></div>
+ </div>
+ <p class="err" id="fErr"></p>
+ <button class="btn" type="submit">Lanjut</button>
+</form></div>
+
+<div class="ov" id="ovIntro"><div class="card intro">
+ <span class="lvl" id="iLvl"></span>
+ <h2 id="iName"></h2>
+ <p id="iText"></p>
+ <div class="irow" id="iRow"></div>
+ <button class="btn" id="iGo">Masuk ruangan</button>
+</div></div>
+
+<div class="ov" id="ovPanel"><div class="card panel" id="panel"></div></div>
+
+<div class="ov" id="ovEnd"><div class="card rap panel">
+ <h2 id="eTitle">Kamu berhasil keluar!</h2>
+ <p class="who2" id="eWho"></p>
+ <div class="score2"><div class="nilai" id="eNilai">0</div><div><span class="pred" id="ePred"></span><p id="eDesc"></p></div></div>
+ <div class="stats" id="eStats"></div>
+ <div class="bars" id="eBars"></div>
+ <p class="kode">Kode verifikasi: <b id="eKode"></b></p>
+ <details class="rev"><summary id="eRevT">Pembahasan</summary><ol id="eList"></ol></details>
+ <div class="endg">
+  <button class="btn" id="eCopy">Salin hasil untuk guru</button>
+  <p class="note" id="eNote"></p>
+  <textarea id="copyBox" hidden readonly aria-label="Teks hasil"></textarea>
+  <button class="btn alt" id="eAgain">Main lagi dari awal</button>
+ </div>
+</div></div>
+
+<script>
+{
+const IDENT={mapel:"PAI dan Budi Pekerti",kelas:"XI",materi:"Pemahaman Wudhu melalui Pembelajaran Berdiferensiasi Visual dan Auditori bagi Murid Disabilitas"};
+const ROOMS=[
+{id:"r1",name:"Ruang Kelas I",bab:"Bab I · Pendahuluan",floor:"wood",wall:"#f4e6c8",cap:"#b98a5a",
+intro:"Kamu terkunci di ruang kelas I, tempat masalah penelitian bermula. Periksa benda bertanda tanya untuk membuka 4 segel, lalu pecahkan kode gembok pintu.",
+objs:[
+{id:"papan",k:"board",wall:1,x:1,w:3,ix:2,iy:2,lab:"Papan tulis",ch:{t:"pg",q:"Menurut latar belakang, mengapa murid perlu menguasai urutan wudhu dari niat hingga doa?",o:["Wudhu syarat sah salat, jadi urutannya bekal ibadah mandiri","Wudhu hanya dinilai dalam ujian praktik di akhir semester","Wudhu menjadi syarat utama naik kelas di sekolah dasar","Wudhu cukup dihafal, tidak perlu dipraktikkan mandiri"],h:"Ingat hubungan wudhu dengan sahnya salat.",e:"Wudhu adalah syarat sah salat, sehingga penguasaan urutannya dari niat hingga doa menjadi bekal beribadah mandiri (Subagiya et al., 2023)."}},
+{id:"poster",k:"poster",wall:1,x:7,w:2,ix:7,iy:2,c:"#ffe08a",lab:"Poster sekolah inklusif",ch:{t:"bs",q:"Pembelajaran inklusif dalam proposal ini merujuk pada UU No. 8 Tahun 2016 dan Permendiknas No. 70 Tahun 2009.",a:true,h:"Lihat lagi dasar hukum yang disebut di latar belakang.",e:"Karena pembelajaran harus inklusif, guru perlu menerapkan pembelajaran berdiferensiasi: menyesuaikan konten, proses, produk, dan lingkungan belajar (Tomlinson, 2014)."}},
+{id:"meja",k:"desk",x:7,y:4,w:2,h:1,ix:6,iy:4,lab:"Catatan di meja guru",ch:{t:"pg",q:"Catatan observasi awal (19 Oktober 2026): saat berwudhu, murid kelas I cenderung …",o:["Bermain-main, boros air, dan menyemburkan air","Malu bertanya dan enggan maju ke depan kelas","Lupa membawa perlengkapan salat dari rumah","Datang terlambat saat jadwal praktik ibadah"],h:"Fokus pada perilaku murid saat memakai air.",e:"Observasi awal terhadap murid disabilitas menemukan murid kelas I cenderung bermain-main, boros air, dan menyemburkan air saat berwudhu."}},
+{id:"lemari",k:"cabinet",x:1,y:5,w:1,h:2,ix:2,iy:5,tall:18,lab:"Lemari berkas masalah",ch:{t:"pg",q:"Manakah yang BUKAN termasuk masalah yang diteliti dalam proposal ini?",o:["Latar belakang keluarga dan kemampuan membaca murid","Murid sulit mengingat dan mengurutkan langkah wudhu","Pembelajaran wudhu didominasi penjelasan lisan saja","Guru belum menerapkan diferensiasi visual-auditori"],h:"Cari bagian yang disebut “tidak diteliti” di pembatasan masalah.",e:"Pembatasan masalah menyebut latar belakang keluarga dan kemampuan membaca tidak diteliti. Tiga pilihan lainnya termasuk identifikasi masalah."}}
+],
+deco:[{k:"sdesk",x:4,y:5,w:2,h:1},{k:"sdesk",x:3,y:7,w:2,h:1},{k:"sdesk",x:6,y:7,w:2,h:1},{k:"plant",x:9,y:9,w:1,h:1},{k:"clock",wall:1,x:9,w:1}],
+door:{code:"213",clue:["Digit 1: banyaknya murid yang menjadi subjek penelitian","Digit 2: kelas tempat mereka belajar","Digit 3: jumlah rumusan masalah"],dg:[0,1,2],e:"Subjeknya 2 murid (autis dan intelektual) kelas I. Rumusan masalahnya ada 3: kondisi awal pemahaman, proses penerapan tindakan, dan peningkatan pemahaman wudhu."}},
+{id:"r2",name:"Tempat Wudhu",bab:"Bab II · Pemahaman materi wudhu",floor:"tile",wall:"#d6eef7",cap:"#4f8fb0",
+intro:"Gemericik air terdengar dari tempat wudhu sekolah. Susun langkah wudhu dengan tertib dan buka 4 segel di ruangan ini.",
+objs:[
+{id:"keran",k:"faucet",wall:1,x:1,w:3,ix:2,iy:2,lab:"Keran wudhu",ch:{t:"or",q:"Susun langkah wudhu dari niat sampai doa. Ketuk kartu sesuai urutannya.",items:["Niat","Berkumur","Memasukkan air ke hidung","Membasuh wajah","Membasuh tangan sampai siku","Mengusap sebagian kepala","Mengusap telinga","Membasuh kaki","Doa setelah wudhu"],e:"Mengerjakan langkah secara berurutan disebut tertib, salah satu rukun wudhu. Enam rukun (termasuk tertib), tiga amalan sunnah, dan doa setelah wudhu membuat langkah yang diajarkan berjumlah sepuluh."}},
+{id:"cermin",k:"mirror",wall:1,x:7,w:2,ix:7,iy:2,lab:"Cermin",ch:{t:"pg",q:"Manakah yang termasuk RUKUN wudhu, bukan amalan sunnah?",o:["Mengusap sebagian kepala","Berkumur-kumur","Mengusap kedua telinga","Memasukkan air ke hidung"],h:"Tiga pilihan lain disebut sebagai amalan sunnah.",e:"Rukun wudhu: niat, membasuh wajah, membasuh tangan sampai siku, mengusap sebagian kepala, membasuh kaki, dan tertib (Ajib, 2019)."}},
+{id:"ember",k:"bucket",x:8,y:5,w:1,h:1,ix:7,iy:5,lab:"Ember air",ch:{t:"bs",q:"Murid kelas awal cenderung ingin bermain air sehingga sulit fokus saat belajar wudhu.",a:true,h:"Ingat temuan Suriati (2021) dan hasil observasi awal.",e:"Temuan Suriati (2021) ini sejalan dengan observasi awal: murid kelas I bermain-main dan boros air saat berwudhu."}},
+{id:"handuk",k:"towel",x:1,y:6,w:1,h:1,ix:2,iy:6,lab:"Rak handuk",ch:{t:"pg",q:"Secara operasional, murid dianggap paham wudhu bila mampu …",o:["Menyebutkan, mengurutkan kartu, dan memperagakan langkah","Menulis, membaca, dan menghafal dalil-dalil tentang wudhu","Menjelaskan hukum, syarat, dan pembatal wudhu secara lisan","Mengerjakan tes tulis pilihan ganda tentang materi wudhu"],h:"Ada tiga kata kerja: satu lisan, satu dengan kartu, satu praktik.",e:"Pemahaman berarti mampu menyebutkan, mengurutkan kartu, dan memperagakan sepuluh langkah wudhu, baik secara mandiri, dengan bantuan, maupun belum mampu."}}
+],
+deco:[{k:"bench",x:4,y:7,w:3,h:1},{k:"plant",x:9,y:9,w:1,h:1},{k:"plant",x:1,y:9,w:1,h:1},{k:"drop",wall:1,x:9,w:1}],
+door:{code:"106",clue:["Digit 1–2: jumlah langkah wudhu yang diajarkan","Digit 3: banyaknya rukun wudhu menurut proposal"],dg:[0,0,1],e:"Ada 10 langkah yang diajarkan: 6 rukun (niat, wajah, tangan, kepala, kaki, tertib), 3 amalan sunnah, dan doa setelah wudhu."}},
+{id:"r3",name:"Perpustakaan",bab:"Bab II · Kerangka teori",floor:"carpet",wall:"#efe2cc",cap:"#7a5637",
+intro:"Perpustakaan penuh buku teori. Setiap sudut menyimpan rahasia cara mengajar murid disabilitas. Buka 5 segel di ruangan ini.",
+objs:[
+{id:"rak",k:"shelf",wall:1,x:1,w:3,ix:2,iy:2,lab:"Rak buku diferensiasi",ch:{t:"mt",q:"Pasangkan tiap aspek diferensiasi dengan penerapannya dalam penelitian. Ketuk aspek, lalu ketuk pasangannya.",pairs:[["Konten","Jumlah kartu diberikan bertahap"],["Proses","Visual-auditori dan bantuan bertahap"],["Produk","Menyebutkan, mengurutkan, memperagakan"],["Lingkungan","Posisi duduk dan alur praktik tertata"]],e:"Guru menyesuaikan konten, proses, produk, dan lingkungan belajar (Tomlinson, 2017). Dalam penelitian ini keempatnya diwujudkan seperti pasangan tadi (Untari et al., 2026)."}},
+{id:"otak",k:"brain",wall:1,x:7,w:2,ix:8,iy:2,lab:"Poster otak",ch:{t:"pg",q:"Informasi disajikan dalam unit kecil agar tidak membebani memori kerja, dan bantuan diberikan sesuai zona perkembangan proksimal. Artinya bantuan guru …",o:["Dikurangi bertahap seiring murid makin mampu","Ditambah terus setiap kali pertemuan berlangsung","Diberikan penuh dan sama sampai siklus berakhir","Dihentikan sejak awal agar murid cepat mandiri"],h:"Ingat prinsip Vygotsky (1978) tentang bantuan.",e:"Informasi disajikan dalam unit kecil (Sweller et al., 2019) dan bantuan dikurangi secara bertahap (Vygotsky, 1978)."}},
+{id:"kartu",k:"cardtable",x:3,y:5,w:2,h:1,ix:3,iy:4,lab:"Meja flashcard",ch:{t:"pg",q:"Berdasarkan prinsip multimedia Mayer, setiap flashcard wudhu dirancang memuat …",o:["Satu gambar besar, satu kata kunci, dan angka urutan","Beberapa gambar kecil disertai penjelasan panjang","Satu kata kunci tanpa gambar agar tidak mengganggu","Gambar berwarna lengkap dengan dalil tentang wudhu"],h:"Murid belajar lebih baik dari kata dan gambar, tapi jangan berlebihan.",e:"Murid belajar lebih baik dari kata dan gambar (Mayer, 2021), sehingga tiap kartu memuat satu gambar besar, satu kata kunci, dan angka urutan."}},
+{id:"radio",k:"radio",x:8,y:5,w:1,h:1,ix:7,iy:5,tall:8,lab:"Radio lagu wudhu",ch:{t:"pg",q:"Mengapa lagu tata cara wudhu dipakai sebagai media auditori?",o:["Kata, melodi, dan irama membuat urutan mudah diulang dan diingat","Lagu menggantikan praktik sehingga murid tak perlu ke tempat wudhu","Lagu membuat kelas ramai sehingga murid tidak cepat merasa bosan","Lagu hanya cocok untuk murid autis, tidak untuk murid intelektual"],h:"Pikirkan apa yang membuat urutan mudah diingat.",e:"Lagu memadukan kata, melodi, dan irama sehingga urutan langkah mudah diulang dan diingat (Després et al., 2024). Guru menyanyi sambil menunjuk kartu, lalu murid mengikuti."}},
+{id:"buku",k:"books",x:1,y:8,w:1,h:1,ix:2,iy:8,lab:"Tumpukan buku",ch:{t:"bs",q:"Autisme ditandai keterbatasan fungsi intelektual dan perilaku adaptif.",a:false,h:"Bandingkan ciri disabilitas intelektual dan autisme.",e:"Itu ciri disabilitas intelektual (Schalock et al., 2021). Autisme ditandai kesulitan komunikasi, interaksi sosial, dan perilaku berulang (APA, 2013). Keduanya butuh instruksi bertahap, pengulangan, dan contoh konkret."}}
+],
+deco:[{k:"readtable",x:5,y:7,w:2,h:1},{k:"bookcase",x:9,y:7,w:1,h:2,tall:18},{k:"plant",x:9,y:4,w:1,h:1}],
+door:{code:"100",clue:["PTK model picture and picture (Gunawan & Ardisal, 2025): kemampuan berwudhu murid disabilitas intelektual naik dari 0% menjadi …%"],dg:[0,0,0],e:"Setelah dua siklus, model picture and picture meningkatkan kemampuan berwudhu dari 0% menjadi 100%. Tapi penelitian itu di SLB, kelas atas, satu jenis media, dan tanpa kerangka diferensiasi."}},
+{id:"r4",name:"Ruang Guru",bab:"Bab III · Metode penelitian",floor:"grey",wall:"#e3e8ef",cap:"#5a6c80",
+intro:"Ruang guru, markas penelitian tindakan kelas. Ini ruangan terakhir! Buka 5 segel dan pecahkan kode pintu keluar.",
+objs:[
+{id:"siklus",k:"cycle",wall:1,x:1,w:3,ix:2,iy:2,lab:"Papan siklus PTK",ch:{t:"or",q:"Susun tahapan dalam satu siklus PTK model Kemmis dan McTaggart.",items:["Perencanaan","Tindakan","Observasi","Refleksi"],e:"PTK berjalan dalam siklus perencanaan, tindakan, observasi, dan refleksi (Kemmis et al., 2014). Refleksi siklus I dipakai untuk memperbaiki siklus II."}},
+{id:"arsip",k:"filecab",x:9,y:3,w:1,h:2,ix:8,iy:3,tall:18,lab:"Lemari arsip",ch:{t:"pg",q:"Peneliti membandingkan data dari guru PAI, guru kelas atau pendamping, dan hasil murid. Ini disebut …",o:["Triangulasi sumber","Triangulasi teknik","Triangulasi waktu","Peer debriefing"],h:"Yang dibandingkan adalah asal datanya, yaitu orangnya.",e:"Triangulasi sumber membandingkan data dari berbagai pihak. Triangulasi teknik membandingkan observasi, wawancara, dan dokumentasi; triangulasi waktu membandingkan pra-siklus sampai siklus II."}},
+{id:"pc",k:"pc",x:1,y:5,w:2,h:1,ix:3,iy:5,tall:14,lab:"Komputer data",ch:{t:"bs",q:"Data dikumpulkan lewat observasi non-partisipan, yaitu peneliti hanya mengamati dari jauh.",a:false,h:"Lihat jenis observasi di teknik pengumpulan data.",e:"Penelitian ini memakai observasi partisipatif dengan lembar 10 langkah wudhu dan lembar perilaku, ditambah wawancara semi-terstruktur dan dokumentasi."}},
+{id:"rapat",k:"meeting",x:4,y:6,w:3,h:1,ix:5,iy:5,lab:"Meja rapat refleksi",ch:{t:"pg",q:"Model analisis Miles, Huberman, dan Saldaña dalam proposal ini terdiri atas …",o:["Kondensasi, penyajian, dan penarikan kesimpulan","Reduksi, kategorisasi, dan pengujian statistik","Observasi, wawancara, dan dokumentasi data","Perencanaan, tindakan, dan refleksi bersama"],h:"Bukan teknik mengumpulkan data, bukan pula tahap PTK.",e:"Analisis mengikuti Miles et al. (2020): kondensasi, penyajian, dan penarikan kesimpulan. Persentase skor dipakai secara deskriptif untuk mendukung uraian kualitatif."}},
+{id:"nilai",k:"gradedesk",x:7,y:8,w:2,h:1,ix:6,iy:8,lab:"Meja penilaian",ch:{t:"pg",q:"Murid A memperoleh skor 14 dari skor maksimal 20 pada siklus II. Hasilnya adalah …",o:["70%, kategori baik, sudah mencapai batas minimal 60%","70%, kategori sangat baik, melampaui batas minimal 80%","75%, kategori baik, sudah mencapai batas minimal 60%","70%, kategori cukup, belum mencapai batas minimal 75%"],h:"Hitung 14 ÷ 20 × 100%, lalu cocokkan dengan kategorinya.",e:"14/20 = 70%, kategori baik (60–79%). Tindakan berhasil bila persentase tiap murid naik dari pra-siklus dan minimal 60%, serta perilaku bermain air menurun."}}
+],
+deco:[{k:"clock",wall:1,x:7,w:1},{k:"poster",wall:1,x:8,w:1,c:"#cde8ff"},{k:"plant",x:1,y:9,w:1,h:1}],
+door:{code:"2060",clue:["Digit 1–2: skor maksimal lembar observasi (10 langkah × skor 2)","Digit 3–4: persentase minimal agar tindakan dinyatakan berhasil"],dg:[0,0,1,1],exit:1,e:"Tiap langkah diberi skor 2 (mandiri), 1 (bantuan), atau 0 (belum mampu), jadi maksimal 20. Tindakan berhasil bila tiap murid naik dari pra-siklus dan mencapai minimal 60%."}}
+];
+const TOTAL=ROOMS.reduce((s,r)=>s+r.objs.length+1,0);
+const T=32,COLS=11,ROWS=11,W=COLS*T,H=ROWS*T,INK="#1c2b3a";
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const IC={
+lock:'<svg viewBox="0 0 24 24"><path d="M17 9V7A5 5 0 0 0 7 7v2H5v13h14V9zm-8-2a3 3 0 0 1 6 0v2H9z"/></svg>',
+unlock:'<svg viewBox="0 0 24 24"><path d="M17 9H9V7a3 3 0 0 1 5.8-1l1.9-.7A5 5 0 0 0 7 7v2H5v13h14V9z"/></svg>',
+door:'<svg viewBox="0 0 24 24"><path d="M5 21V3h14v18h2v2H3v-2zm10-9a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z"/></svg>',
+check:'<svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.8 1.8 6 6L21 8.3l-1.8-1.8z"/></svg>',
+x:'<svg viewBox="0 0 24 24"><path d="M18.4 4.2 12 10.6 5.6 4.2 4.2 5.6 10.6 12l-6.4 6.4 1.4 1.4 6.4-6.4 6.4 6.4 1.4-1.4-6.4-6.4 6.4-6.4z"/></svg>',
+on:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+off:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm18.7 1.7-1.4-1.4-2.3 2.3-2.3-2.3-1.4 1.4 2.3 2.3-2.3 2.3 1.4 1.4 2.3-2.3 2.3 2.3 1.4-1.4-2.3-2.3z"/></svg>',
+up:'<svg viewBox="0 0 24 24"><path d="M12 6 4 16h16z"/></svg>',
+dn:'<svg viewBox="0 0 24 24"><path d="M12 18 4 8h16z"/></svg>'
+};
+const PAIRC=["#1fa2d6","#e8743f","#8a5cd6","#22a35a"];
+
+let S={p:null,room:0,solved:{},cr:{},score:0,mute:false,done:false};
+const pl={x:5.5*T,y:9.62*T,face:"u",moving:false,ph:0};
+let grid=[],path=null,pend=null,near=null,mode="play",doorOpen=0,fade=0,exitT=0,tapFx=null,CUR=null,AC=null,toastT=0,flash=0;
+const keys=new Set(),dpad=new Set();
+const R=()=>ROOMS[Math.min(S.room,ROOMS.length-1)];
+const oid=o=>R().id+"."+(o.door?"door":o.id);
+const sealCount=()=>R().objs.filter(o=>S.solved[oid(o)]).length;
+const doorObj=()=>({door:1,id:"door",x:5,w:1,wall:1,ix:5,iy:2,lab:"Pintu bergembok",...R().door});
+
+/* sound */
+function snd(k){if(S.mute)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const seq={ok:[[660,.08],[990,.16]],bad:[[196,.24,"sawtooth"]],tap:[[540,.05]],seal:[[784,.08],[1175,.18]],door:[[392,.1],[523,.1],[659,.1],[784,.28]],step:[[180,.03,"square"]]}[k];let t=AC.currentTime;for(const [f,d,w] of seq){const o=AC.createOscillator(),g=AC.createGain();o.type=w||"triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(k==="step"?.03:.15,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.03);t+=d*.9}}catch(e){}}
+function updMute(){document.querySelectorAll(".mute").forEach(b=>{b.innerHTML=S.mute?IC.off:IC.on;b.setAttribute("aria-label",S.mute?"Nyalakan suara":"Matikan suara")})}
+document.querySelectorAll(".mute").forEach(b=>b.addEventListener("click",()=>{S.mute=!S.mute;updMute();snd("tap")}));
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("on"),2200)}
+function ov(id,on){$("#"+id).classList.toggle("on",on)}
+const busy=()=>!!document.querySelector(".ov.on");
+
+/* room */
+function buildGrid(){const r=R();grid=[];for(let y=0;y<ROWS;y++){grid.push([]);for(let x=0;x<COLS;x++)grid[y].push(x<1||x>9||y<2||y>9?1:0)}for(const o of [...r.objs,...r.deco])if(!o.wall)for(let y=o.y;y<o.y+o.h;y++)for(let x=o.x;x<o.x+o.w;x++)grid[y][x]=1}
+const blocked=(x,y)=>x<0||y<0||x>=COLS||y>=ROWS||grid[y][x]===1;
+function loadRoom(){buildGrid();pl.x=5.5*T;pl.y=9.62*T;pl.face="u";path=null;pend=null;doorOpen=S.solved[R().id+".door"]?1:0;mode="play";fade=0;renderHud()}
+function renderHud(){const r=R();$("#hLvl").textContent=`Level ${S.room+1}/${ROOMS.length} · ${r.bab.split(" · ")[0]}`;$("#hRoom").textContent=r.name;$("#hScore").textContent=S.score;
+$("#hSeals").innerHTML=r.objs.map(o=>(S.solved[oid(o)]?IC.unlock:IC.lock).replace("<svg",`<svg class="${S.solved[oid(o)]?"on":""}"`)).join("")+IC.door.replace("<svg",`<svg class="dr ${S.solved[r.id+".door"]?"on":""}"`)}
+function showIntro(){const r=R();$("#iLvl").textContent=`Level ${S.room+1} dari ${ROOMS.length} · ${r.bab}`;$("#iName").textContent=r.name;$("#iText").textContent=r.intro;
+const np=r.objs.length;$("#iRow").innerHTML=`<div><b>${np}</b>segel</div><div><b>${r.door.code.length}</b>digit gembok</div><div><b>${S.room+1}/${ROOMS.length}</b>ruangan</div>`;ov("ovIntro",true);setTimeout(()=>$("#iGo").focus(),60)}
+$("#iGo").addEventListener("click",()=>{snd("tap");ov("ovIntro",false);toast(S.room===0?"Ketuk lantai atau benda untuk berjalan":"Cari benda bertanda tanya")});
+
+/* canvas */
+const cv=$("#cv"),ctx=cv.getContext("2d");let K=1;
+function fit(){const st=$("#stage");const s=Math.max(160,Math.floor(Math.min(st.clientWidth,st.clientHeight)-8));const d=Math.min(window.devicePixelRatio||1,2.5);cv.style.width=cv.style.height=s+"px";cv.width=cv.height=Math.round(s*d);K=cv.width/W}
+const stageRO=new ResizeObserver(fit);stageRO.observe($("#stage"));
+function rr(x,y,w,h,r,fill,stroke){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke!==0){ctx.lineWidth=1.4;ctx.strokeStyle=stroke||INK;ctx.stroke()}}
+function box(x,y,w,h,d,top,front){rr(x,y+h-d,w,d,3,front);rr(x,y,w,h-d,3,top)}
+function circ(x,y,r,fill,stroke){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke!==0){ctx.lineWidth=1.4;ctx.strokeStyle=stroke||INK;ctx.stroke()}}
+function line(x1,y1,x2,y2,c,w){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=c;ctx.lineWidth=w||1.4;ctx.stroke()}
+function seed(n){let s=n*9301+49297;return()=>((s=s*16807%2147483647)/2147483647)}
+
+function drawFloor(r){const X0=T,Y0=2*T,FW=9*T,FH=8*T;
+if(r.floor==="wood"){ctx.fillStyle="#d9a066";ctx.fillRect(X0,Y0,FW,FH);for(let y=0;y<16;y++){line(X0,Y0+y*16,X0+FW,Y0+y*16,"#c48a52",1);const off=(y%2)*36;for(let x=off;x<FW;x+=72)line(X0+x,Y0+y*16,X0+x,Y0+y*16+16,"#c48a52",1)}}
+else if(r.floor==="tile"){for(let y=0;y<16;y++)for(let x=0;x<18;x++){ctx.fillStyle=(x+y)%2?"#e9f6fb":"#d3ecf5";ctx.fillRect(X0+x*16,Y0+y*16,16,16)}}
+else if(r.floor==="carpet"){ctx.fillStyle="#4f8f6e";ctx.fillRect(X0,Y0,FW,FH);ctx.strokeStyle="#6aa985";ctx.lineWidth=3;ctx.strokeRect(X0+10,Y0+10,FW-20,FH-20);ctx.strokeStyle="#3f7a5c";ctx.lineWidth=1;ctx.strokeRect(X0+16,Y0+16,FW-32,FH-32)}
+else{for(let y=0;y<8;y++)for(let x=0;x<9;x++){ctx.fillStyle=(x+y)%2?"#dde2e9":"#d0d6de";ctx.fillRect(X0+x*T,Y0+y*T,T,T)}}
+const g=ctx.createLinearGradient(0,Y0,0,Y0+18);g.addColorStop(0,"rgba(0,0,0,.18)");g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(X0,Y0,FW,18)}
+function drawWalls(r){ctx.fillStyle=r.wall;ctx.fillRect(0,0,W,2*T);
+if(r.floor==="tile"){ctx.strokeStyle="rgba(79,143,176,.25)";ctx.lineWidth=1;for(let y=10;y<60;y+=12)line(0,y,W,y,"rgba(79,143,176,.25)",1);for(let x=0;x<W;x+=12)line(x,8,x,58,"rgba(79,143,176,.18)",1)}
+ctx.fillStyle=r.cap;ctx.fillRect(0,0,W,8);ctx.fillStyle="rgba(0,0,0,.18)";ctx.fillRect(0,57,W,7);
+ctx.fillStyle=r.cap;ctx.fillRect(0,2*T,T,H-2*T);ctx.fillRect(W-T,2*T,T,H-2*T);ctx.fillRect(0,H-T+10,W,T-10);
+ctx.fillStyle="rgba(255,255,255,.12)";ctx.fillRect(T-4,2*T,4,H-3*T+10);ctx.fillStyle="rgba(0,0,0,.2)";ctx.fillRect(W-T,2*T,4,H-3*T+10)}
+
+function drawDoor(t){const r=R(),X=5*T,n=r.objs.length,s=sealCount();
+for(let i=0;i<n;i++){const lx=X+T/2+(i-(n-1)/2)*11;circ(lx,13,4,i<s?"#ffd23c":"#5d6b78");if(i<s){ctx.fillStyle="rgba(255,210,60,.3)";ctx.beginPath();ctx.arc(lx,13,7,0,7);ctx.fill()}}
+rr(X+1,20,T-2,44,3,"#6b4a2b");
+if(doorOpen>0){const g=ctx.createLinearGradient(0,22,0,64);g.addColorStop(0,"#fff6c9");g.addColorStop(1,"#ffd86b");rr(X+4,23,T-8,41,2,g,0);ctx.fillStyle="rgba(255,240,170,"+(.35*doorOpen)+")";ctx.beginPath();ctx.moveTo(X+4,64);ctx.lineTo(X+T-4,64);ctx.lineTo(X+T+8,92);ctx.lineTo(X-8,92);ctx.fill();
+const pw=(T-8)*(1-doorOpen*.82);rr(X+4,23,pw,41,2,"#a8743f")}
+else{rr(X+4,23,T-8,41,2,"#a8743f");line(X+8,30,X+T-8,30,"#8b5e31",1.2);line(X+8,44,X+T-8,44,"#8b5e31",1.2);
+const all=s>=n,pulse=all?(Math.sin(t*5)+1)/2:0;if(all){ctx.fillStyle=`rgba(255,201,60,${.25+.35*pulse})`;ctx.beginPath();ctx.arc(X+T/2,47,12,0,7);ctx.fill()}
+ctx.beginPath();ctx.arc(X+T/2,43,4.5,Math.PI,0);ctx.lineWidth=2.4;ctx.strokeStyle="#c9cfd6";ctx.stroke();rr(X+T/2-7,43,14,11,2,"#ffc93c")}
+if(r.door.exit){ctx.fillStyle="#22a35a";rr(X+3,8,T-6,9,2,"#22a35a");ctx.fillStyle="#fff";ctx.font="800 6.5px Nunito,sans-serif";ctx.textAlign="center";ctx.fillText("KELUAR",X+T/2,15)}}
+
+function drawWallObj(o,t){const X=o.x*T,Wd=o.w*T;switch(o.k){
+case "board":rr(X+4,12,Wd-8,40,3,"#f7fbff","#5b6a78");line(X+12,22,X+52,22,"#2f6db5",2);line(X+12,30,X+40,30,"#2f6db5",2);line(X+12,38,X+60,38,"#d64545",2);ctx.fillStyle="#2f6db5";ctx.font="800 9px Nunito,sans-serif";ctx.textAlign="left";ctx.fillText("WUDHU",X+60,26);rr(X+10,52,Wd-20,4,1,"#9aa7b4");break;
+case "poster":rr(X+6,12,Wd-12,40,2,o.c||"#ffe08a");circ(X+Wd/2,26,7,"#22a35a");ctx.fillStyle="#fff";ctx.fillRect(X+Wd/2-1.5,21,3,10);ctx.fillRect(X+Wd/2-5,24.5,10,3);for(let i=0;i<3;i++)line(X+12,38+i*5,X+Wd-12-(i%2)*8,38+i*5,"#9b7b3a",1.6);break;
+case "brain":rr(X+6,10,Wd-12,44,2,"#fff2f6");circ(X+Wd/2-6,28,9,"#f59bb7");circ(X+Wd/2+6,28,9,"#f59bb7");circ(X+Wd/2,22,8,"#f7adc4");line(X+Wd/2,16,X+Wd/2,37,"#c4567a",1.4);rr(X+12,42,Wd-24,6,2,"#1fa2d6",0);break;
+case "cycle":{rr(X+4,10,Wd-8,46,3,"#fffef6","#5b6a78");const cx=X+Wd/2,cy=33,cols=["#1fa2d6","#e8743f","#22a35a","#8a5cd6"];for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(cx,cy,14,i*Math.PI/2+.25,(i+1)*Math.PI/2-.25);ctx.strokeStyle=cols[i];ctx.lineWidth=4;ctx.stroke()}
+for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,px=cx+Math.cos(a)*24,py=cy+Math.sin(a)*14;circ(px,py,4.5,cols[i])}break}
+case "shelf":{rr(X+2,4,Wd-4,56,2,"#8b5e34");const rnd=seed(7),cl=["#e8743f","#1fa2d6","#22a35a","#ffc93c","#8a5cd6","#ef5b5b","#f4f1e6"];for(let s=0;s<3;s++){const sy=8+s*17;rr(X+5,sy,Wd-10,14,1,"#5e3d20",0);let bx=X+7;while(bx<X+Wd-12){const bw=4+rnd()*4,bh=9+rnd()*4;ctx.fillStyle=cl[Math.floor(rnd()*cl.length)];ctx.fillRect(bx,sy+14-bh,bw,bh);bx+=bw+1}}break}
+case "faucet":{rr(X+2,22,Wd-4,36,2,"#bfe3f1","#4f8fb0");for(let y=30;y<58;y+=8)line(X+3,y,X+Wd-3,y,"rgba(79,143,176,.35)",1);rr(X+2,50,Wd-4,8,2,"#9fb3c1");for(let i=0;i<o.w;i++){const cx=X+i*T+16;rr(cx-3,26,6,9,2,"#c9d2db");rr(cx-1,33,10,4,2,"#c9d2db");const ph=((t*1.3+i*.37)%1);if(ph<.8){ctx.fillStyle="#4cb8e6";ctx.beginPath();ctx.arc(cx+7,38+ph*14,1.9,0,7);ctx.fill()}}break}
+case "mirror":{const cx=X+Wd/2;ctx.beginPath();ctx.ellipse(cx,32,Wd/2-10,21,0,0,7);ctx.fillStyle="#7a5637";ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle=INK;ctx.stroke();ctx.beginPath();ctx.ellipse(cx,32,Wd/2-14,17,0,0,7);ctx.fillStyle="#cfeaf6";ctx.fill();line(cx-12,22,cx-4,16,"#fff",2.4);line(cx-14,30,cx-8,26,"#fff",1.6);break}
+case "clock":circ(X+T/2,28,10,"#fff");line(X+T/2,28,X+T/2,21,INK,1.6);line(X+T/2,28,X+T/2+5,30,INK,1.6);break;
+case "drop":rr(X+6,16,T-12,30,3,"#e9f6fb","#4f8fb0");ctx.fillStyle="#1fa2d6";ctx.beginPath();ctx.moveTo(X+T/2,21);ctx.quadraticCurveTo(X+T/2+8,32,X+T/2,39);ctx.quadraticCurveTo(X+T/2-8,32,X+T/2,21);ctx.fill();break}}
+
+function drawFloorObj(o,t){const X=o.x*T,Y=o.y*T,Wd=o.w*T,Hd=o.h*T;switch(o.k){
+case "desk":box(X+2,Y+2,Wd-4,Hd-2,10,"#c98a4b","#a86d34");rr(X+8,Y+6,14,10,1,"#fff");rr(X+12,Y+8,14,10,1,"#fff");line(X+15,Y+11,X+23,Y+11,"#9ab",1);rr(X+38,Y+6,14,10,1,"#1fa2d6");break;
+case "sdesk":box(X+6,Y+4,Wd-12,Hd-8,8,"#d9a865","#b5803e");rr(X+Wd/2-7,Y+Hd-6,14,7,2,"#5b7aa6");break;
+case "cabinet":box(X+2,Y-o.tall,Wd-4,Hd+o.tall,Hd+o.tall-10,"#9cc0d6","#7aa0b8");line(X+Wd/2,Y-o.tall+12,X+Wd/2,Y+Hd-2,INK,1.2);circ(X+Wd/2-4,Y+Hd/2-6,1.8,"#ffc93c",0);circ(X+Wd/2+4,Y+Hd/2-6,1.8,"#ffc93c",0);break;
+case "filecab":box(X+2,Y-o.tall,Wd-4,Hd+o.tall,Hd+o.tall-10,"#b8c3cf","#95a3b2");for(let i=0;i<4;i++){const dy=Y-o.tall+14+i*15;rr(X+6,dy,Wd-12,12,2,"#a7b4c2");rr(X+Wd/2-4,dy+5,8,3,1,INK,0)}break;
+case "bucket":ctx.beginPath();ctx.moveTo(X+7,Y+8);ctx.lineTo(X+Wd-7,Y+8);ctx.lineTo(X+Wd-10,Y+Hd-2);ctx.lineTo(X+10,Y+Hd-2);ctx.closePath();ctx.fillStyle="#2f8fd6";ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle=INK;ctx.stroke();ctx.beginPath();ctx.ellipse(X+Wd/2,Y+8,Wd/2-7,4,0,0,7);ctx.fillStyle="#9fe0ff";ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(X+Wd/2,Y+8,11,Math.PI*1.1,Math.PI*1.9);ctx.stroke();break;
+case "towel":rr(X+6,Y-6,3,Hd+4,1,"#8b9aa8");rr(X+Wd-9,Y-6,3,Hd+4,1,"#8b9aa8");rr(X+5,Y-6,Wd-10,3,1,"#8b9aa8");rr(X+9,Y-4,Wd-18,18,2,"#ef8fa8");line(X+9,Y+8,X+Wd-9,Y+8,"#fff",1.6);break;
+case "bench":box(X+4,Y+6,Wd-8,Hd-10,7,"#c98a4b","#a86d34");break;
+case "plant":rr(X+9,Y+12,Wd-18,Hd-14,3,"#c96f43");circ(X+Wd/2,Y+6,9,"#3f9a5f");circ(X+Wd/2-7,Y+10,6,"#4fb26f");circ(X+Wd/2+7,Y+10,6,"#4fb26f");break;
+case "cardtable":{box(X+2,Y+2,Wd-4,Hd-2,9,"#e6c48f","#c9a26a");const rnd=seed(3);for(let i=0;i<5;i++){const cx=X+8+i*10,cy=Y+7+rnd()*5;rr(cx,cy,9,11,1.5,"#fff");ctx.fillStyle=["#1fa2d6","#e8743f","#22a35a","#8a5cd6","#ffc93c"][i];ctx.fillRect(cx+2,cy+2,5,4)}break}
+case "radio":{box(X+4,Y+6,Wd-8,Hd-6,8,"#c98a4b","#a86d34");rr(X+6,Y-o.tall+4,Wd-12,16,3,"#e8743f");circ(X+12,Y-o.tall+12,4,"#3b2a20",0);rr(X+19,Y-o.tall+8,8,3,1,"#fff",0);const ph=(t*.6)%1;ctx.globalAlpha=1-ph;ctx.fillStyle="#8a5cd6";ctx.font="800 11px sans-serif";ctx.textAlign="center";ctx.fillText("♪",X+Wd/2+6,Y-o.tall-2-ph*14);ctx.fillText("♫",X+Wd/2-6,Y-o.tall+2-((ph+.5)%1)*14);ctx.globalAlpha=1;break}
+case "books":{const cl=["#1fa2d6","#ef5b5b","#ffc93c","#22a35a"];for(let i=0;i<4;i++)rr(X+5+(i%2)*2,Y+Hd-8-i*6,Wd-12,6,1,cl[i]);circ(X+Wd-8,Y+2,6,"#6fc3e8");break}
+case "readtable":box(X+4,Y+3,Wd-8,Hd-4,9,"#c98a4b","#a86d34");rr(X+Wd/2-12,Y+6,24,11,1,"#fff");line(X+Wd/2,Y+6,X+Wd/2,Y+17,"#9ab",1);break;
+case "bookcase":{box(X+2,Y-o.tall,Wd-4,Hd+o.tall,Hd+o.tall-8,"#8b5e34","#6f4a28");const rnd=seed(11),cl=["#e8743f","#1fa2d6","#22a35a","#ffc93c","#8a5cd6"];for(let s=0;s<4;s++){const sy=Y-o.tall+12+s*15;let bx=X+5;while(bx<X+Wd-8){const bw=3+rnd()*3;ctx.fillStyle=cl[Math.floor(rnd()*5)];ctx.fillRect(bx,sy,bw,11);bx+=bw+1}}break}
+case "pc":box(X+2,Y+2,Wd-4,Hd-2,10,"#d7dee6","#b3bfcc");rr(X+Wd/2-14,Y-o.tall,28,20,2,"#2b3d52");rr(X+Wd/2-11,Y-o.tall+3,22,13,1,"#56c2ee",0);rr(X+Wd/2-3,Y-o.tall+20,6,5,1,"#5b6a78");rr(X+Wd/2-12,Y+8,24,6,1,"#fff");break;
+case "meeting":{box(X+2,Y+2,Wd-4,Hd-2,10,"#b98a5a","#966a3e");const cs=[X+14,X+Wd/2,X+Wd-14];cs.forEach((cx,i)=>{rr(cx-7,Y+5,14,10,1,"#fff");line(cx-4,Y+9,cx+4,Y+9,"#9ab",1)});break}
+case "gradedesk":box(X+2,Y+2,Wd-4,Hd-2,10,"#c98a4b","#a86d34");rr(X+10,Y+5,22,13,1,"#fff");ctx.fillStyle="#d64545";ctx.font="800 8px Nunito,sans-serif";ctx.textAlign="center";ctx.fillText("70%",X+21,Y+14);line(X+40,Y+6,X+52,Y+14,"#d64545",2.4);break}}
+
+function bounds(o){if(o.wall)return{x:o.x*T+2,y:o.door?18:6,w:o.w*T-4,h:o.door?46:56};const tl=o.tall||0;return{x:o.x*T,y:o.y*T-tl,w:o.w*T,h:o.h*T+tl}}
+function marker(o,t){const b=bounds(o),solved=S.solved[oid(o)];const cx=b.x+b.w/2,cy=b.y-4+(solved?0:Math.sin(t*4+o.x)*2.5);if(solved){circ(cx,cy+6,6,"#22a35a");ctx.beginPath();ctx.moveTo(cx-3,cy+6);ctx.lineTo(cx-.8,cy+8.4);ctx.lineTo(cx+3.4,cy+3.6);ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke()}else{circ(cx,cy+4,7.5,"#ffc93c");ctx.fillStyle=INK;ctx.font="800 11px Nunito,sans-serif";ctx.textAlign="center";ctx.fillText("?",cx,cy+8)}}
+function glow(o,t){const b=bounds(o),a=.45+.35*Math.sin(t*6);ctx.save();ctx.strokeStyle=`rgba(255,201,60,${a})`;ctx.lineWidth=3;ctx.setLineDash([6,4]);ctx.lineDashOffset=-t*20;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(b.x-3,b.y-3,b.w+6,b.h+6,6);else ctx.rect(b.x-3,b.y-3,b.w+6,b.h+6);ctx.stroke();ctx.restore()}
+
+function drawPlayer(){const x=pl.x,y=pl.y,f=pl.face,m=pl.moving,ph=pl.ph,bob=m?Math.abs(Math.sin(ph))*1.6:0,sw=m?Math.sin(ph):0,side=f==="l"||f==="r",dir=f==="l"?-1:1;
+ctx.fillStyle="rgba(0,0,0,.22)";ctx.beginPath();ctx.ellipse(x,y,9,3.5,0,0,7);ctx.fill();
+if(side){rr(x-3+sw*3,y-11,5,11,2,"#24345a");rr(x-3-sw*3,y-11,5,11,2,"#2c3e66")}
+else{const a=m?Math.max(0,sw)*3:0,b=m?Math.max(0,-sw)*3:0;rr(x-6,y-11,5,11-a,2,"#2c3e66");rr(x+1,y-11,5,11-b,2,"#2c3e66")}
+if(f==="u")rr(x-7,y-24-bob,14,12,3,"#1fa2d6");
+rr(x-8,y-24-bob,16,15,5,"#ffffff");
+if(side){rr(x-2+sw*-3,y-22-bob,5,11,2,"#f4f4f4");if(true){rr(x-dir*10,y-23-bob,5,11,2,"#1fa2d6")}}
+else{rr(x-11,y-22-bob+sw*1.5,4,11,2,"#f4f4f4");rr(x+7,y-22-bob-sw*1.5,4,11,2,"#f4f4f4");if(f==="d"){ctx.fillStyle="#22a35a";ctx.beginPath();ctx.moveTo(x-2,y-23-bob);ctx.lineTo(x+2,y-23-bob);ctx.lineTo(x,y-16-bob);ctx.fill()}}
+const hy=y-31-bob;circ(x,hy,8.5,"#e9b48a");
+ctx.fillStyle="#2b2018";ctx.beginPath();
+if(f==="u"){ctx.arc(x,hy,8.6,0,Math.PI*2);ctx.fill()}
+else if(f==="d"){ctx.arc(x,hy-1,8.8,Math.PI*1.02,Math.PI*1.98);ctx.fill();circ(x-3,hy+1.5,1.3,"#1c2b3a",0);circ(x+3,hy+1.5,1.3,"#1c2b3a",0);ctx.beginPath();ctx.arc(x,hy+3.5,2.4,.2,Math.PI-.2);ctx.strokeStyle="#7a3b2a";ctx.lineWidth=1.2;ctx.stroke()}
+else{ctx.arc(x-dir*1.5,hy-1,8.8,Math.PI*1.0,Math.PI*2.0);ctx.fill();ctx.beginPath();ctx.arc(x-dir*4,hy,6,0,Math.PI*2);ctx.fill();circ(x+dir*4,hy+1.5,1.3,"#1c2b3a",0)}}
+
+function draw(t){ctx.setTransform(K,0,0,K,0,0);ctx.clearRect(0,0,W,H);const r=R();drawFloor(r);drawWalls(r);
+for(const o of r.deco)if(o.wall)drawWallObj(o,t);for(const o of r.objs)if(o.wall)drawWallObj(o,t);drawDoor(t);
+const fl=[...r.deco,...r.objs].filter(o=>!o.wall).sort((a,b)=>(a.y+a.h)-(b.y+b.h));let drawn=false;
+for(const o of fl){if(!drawn&&(o.y+o.h)*T>pl.y+2){drawPlayer();drawn=true}drawFloorObj(o,t)}if(!drawn)drawPlayer();
+if(tapFx){const a=1-(t-tapFx.t)/0.5;if(a<=0)tapFx=null;else{ctx.strokeStyle=`rgba(255,201,60,${a})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(tapFx.x,tapFx.y,10*(1.5-a),4*(1.5-a),0,0,7);ctx.stroke()}}
+if(near&&mode==="play")glow(near,t);
+for(const o of r.objs)marker(o,t);
+if(flash>0){ctx.fillStyle=`rgba(255,240,170,${flash*.5})`;ctx.fillRect(0,0,W,H)}
+if(fade>0){ctx.fillStyle=`rgba(8,22,36,${fade})`;ctx.fillRect(0,0,W,H)}}
+
+/* movement */
+function hit(x,y){return [[x-8,y-6],[x+8,y-6],[x-8,y+2],[x+8,y+2]].some(([a,b])=>blocked(Math.floor(a/T),Math.floor(b/T)))}
+const ctr=(tx,ty)=>({x:(tx+.5)*T,y:(ty+.62)*T});
+function bfs(sx,sy,tx,ty){if(blocked(tx,ty))return null;const prev={},k=(x,y)=>x+","+y,q=[[sx,sy]];prev[k(sx,sy)]=null;while(q.length){const [x,y]=q.shift();if(x===tx&&y===ty){const out=[];let c=k(x,y);while(c){const [a,b]=c.split(",").map(Number);out.unshift(ctr(a,b));c=prev[c]}return out}for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(!blocked(nx,ny)&&!(k(nx,ny) in prev)){prev[k(nx,ny)]=k(x,y);q.push([nx,ny])}}}return null}
+function pathTo(tx,ty){const sx=Math.floor(pl.x/T),sy=Math.floor(pl.y/T);const p=bfs(sx,sy,tx,ty);if(p){path=p;return true}return false}
+function objs(){return [...R().objs,doorObj()]}
+function findNear(){const px=Math.floor(pl.x/T),py=Math.floor(pl.y/T);let best=null,bd=1e9;for(const o of objs()){let ok=false;if(o.wall){ok=py===2&&px>=o.x&&px<o.x+o.w}else{ok=px>=o.x-1&&px<=o.x+o.w&&py>=o.y-1&&py<=o.y+o.h&&!((px===o.x-1||px===o.x+o.w)&&(py===o.y-1||py===o.y+o.h))}
+const c=ctr(o.ix,o.iy),d=Math.hypot(c.x-pl.x,c.y-pl.y);if(d<20)ok=true;if(ok){const b=bounds(o),dd=Math.hypot(b.x+b.w/2-pl.x,b.y+b.h/2-pl.y);if(dd<bd){bd=dd;best=o}}}return best}
+function update(dt,t){let vx=0,vy=0;
+if(mode==="play"&&!busy()){if(keys.has("l")||dpad.has("left"))vx-=1;if(keys.has("r")||dpad.has("right"))vx+=1;if(keys.has("u")||dpad.has("up"))vy-=1;if(keys.has("d")||dpad.has("down"))vy+=1}
+const sp=96;
+if(vx||vy){path=null;pend=null;const l=Math.hypot(vx,vy);const nx=pl.x+vx/l*sp*dt,ny=pl.y+vy/l*sp*dt;const ox=pl.x,oy=pl.y;if(!hit(nx,pl.y))pl.x=nx;if(!hit(pl.x,ny))pl.y=ny;pl.face=Math.abs(vx)>Math.abs(vy)?(vx<0?"l":"r"):(vy<0?"u":"d");pl.moving=Math.hypot(pl.x-ox,pl.y-oy)>.01}
+else if(path&&path.length&&!busy()){const tg=path[0],dx=tg.x-pl.x,dy=tg.y-pl.y,d=Math.hypot(dx,dy),st=sp*dt;if(d<=st){pl.x=tg.x;pl.y=tg.y;path.shift()}else{pl.x+=dx/d*st;pl.y+=dy/d*st}if(d>.5)pl.face=Math.abs(dx)>Math.abs(dy)?(dx<0?"l":"r"):(dy<0?"u":"d");pl.moving=true;
+if(!path.length){path=null;pl.moving=false;if(mode==="exit"){mode="exiting";exitT=0;pl.face="u"}else if(pend){const o=pend;pend=null;faceTo(o);openObj(o)}}}
+else if(mode!=="exiting")pl.moving=false;
+if(mode==="exiting"){exitT+=dt;pl.y-=sp*.7*dt;pl.moving=true;pl.face="u";fade=Math.min(1,exitT/0.9);if(exitT>1.05){mode="wait";nextRoom()}}
+if(pl.moving){const before=Math.floor(pl.ph/Math.PI);pl.ph+=dt*12;if(Math.floor(pl.ph/Math.PI)!==before)snd("step")}
+if(doorOpen>0&&doorOpen<1)doorOpen=Math.min(1,doorOpen+dt*1.6);
+if(flash>0)flash=Math.max(0,flash-dt*1.5);
+if(mode==="enter"){fade=Math.max(0,fade-dt*2);if(fade===0)mode="play"}
+const nb=mode==="play"?findNear():null;if(nb!==near){near=nb;updAct()}}
+function faceTo(o){const b=bounds(o),dx=b.x+b.w/2-pl.x,dy=b.y+b.h/2-pl.y;pl.face=Math.abs(dx)>Math.abs(dy)?(dx<0?"l":"r"):(dy<0?"u":"d")}
+function updAct(){const a=$("#act");a.disabled=!near;$("#hint").innerHTML=near?`Periksa: <b>${esc(near.lab)}</b>`:(mode==="play"?"Ketuk lantai atau benda untuk berjalan":"")}
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;update(dt,t);draw(t);requestAnimationFrame(loop)}
+
+/* input */
+const KM={arrowleft:"l",a:"l",arrowright:"r",d:"r",arrowup:"u",w:"u",arrowdown:"d",s:"d"};
+document.addEventListener("keydown",e=>{if(busy())return;const k=e.key.toLowerCase();if(KM[k]){keys.add(KM[k]);e.preventDefault()}else if((k==="e"||k==="enter"||k===" ")&&near&&mode==="play"){e.preventDefault();interact()}});
+document.addEventListener("keyup",e=>{const k=e.key.toLowerCase();if(KM[k])keys.delete(KM[k])});
+window.addEventListener("blur",()=>{keys.clear();dpad.clear();document.querySelectorAll(".dpad button").forEach(b=>b.classList.remove("on"))});
+document.querySelectorAll(".dpad button").forEach(b=>{const d=b.dataset.d;const on=e=>{e.preventDefault();dpad.add(d);b.classList.add("on");try{b.setPointerCapture(e.pointerId)}catch(_){}};const off=()=>{dpad.delete(d);b.classList.remove("on")};b.addEventListener("pointerdown",on);b.addEventListener("pointerup",off);b.addEventListener("pointercancel",off);b.addEventListener("lostpointercapture",off);b.addEventListener("contextmenu",e=>e.preventDefault())});
+$("#act").addEventListener("click",()=>{if(near&&mode==="play"&&!busy())interact()});
+function interact(){faceTo(near);openObj(near)}
+cv.addEventListener("pointerdown",e=>{if(busy()||mode!=="play")return;const rc=cv.getBoundingClientRect(),lx=(e.clientX-rc.left)*W/rc.width,ly=(e.clientY-rc.top)*H/rc.height;
+let target=null;for(const o of objs()){const b=bounds(o);if(lx>=b.x&&lx<=b.x+b.w&&ly>=b.y-6&&ly<=b.y+b.h){target=o;break}}
+if(target){if(near===target){interact();return}if(pathTo(target.ix,target.iy)){pend=target;const c=ctr(target.ix,target.iy);tapFx={x:c.x,y:c.y,t:performance.now()/1000}}return}
+const tx=Math.floor(lx/T),ty=Math.floor(ly/T);if(!blocked(tx,ty)&&pathTo(tx,ty)){pend=null;const c=ctr(tx,ty);tapFx={x:c.x,y:c.y,t:performance.now()/1000}}});
+
+/* puzzles */
+const P=$("#panel");
+const TAGS={pg:["Pilihan ganda",""],bs:["Benar atau salah","g-bs"],or:["Susun urutan","g-or"],mt:["Pasangkan","g-mt"],cd:["Kode gembok","g-cd"]};
+function head(o,t){const g=TAGS[t];return `<div class="ph"><span class="tag ${g[1]}">${g[0]}</span><b>${esc(o.lab)}</b><button class="x" data-act="close" aria-label="Tutup">${IC.x.replace("<svg",'<svg class="ic"')}</button></div>`}
+function openObj(o){if(!o)return;path=null;pend=null;keys.clear();dpad.clear();snd("tap");const id=oid(o);
+if(o.door){if(sealCount()<R().objs.length){P.innerHTML=head(o,"cd")+`<p class="q">Pintu masih tergembok rapat.</p><p class="ex">Buka dulu semua segel di ruangan ini (${sealCount()} dari ${R().objs.length} terbuka). Lampu di atas pintu menyala setiap kali satu segel terbuka.</p><button class="btn" data-act="close">Oke, cari lagi</button>`;ov("ovPanel",true);return}
+if(S.solved[id]){P.innerHTML=head(o,"cd")+`<p class="ex">Gembok sudah terbuka.</p><button class="btn" data-act="close">Tutup</button>`;ov("ovPanel",true);return}
+CUR={o,id,t:"cd",dig:Array(o.code.length).fill(0)};renderCode();ov("ovPanel",true);return}
+if(S.solved[id]){P.innerHTML=head(o,o.ch.t)+`<div class="okh">${IC.check}<h3>Segel sudah terbuka</h3></div><p class="ex" style="margin-top:10px">${esc(o.ch.e)}</p><button class="btn" data-act="close">Tutup</button>`;ov("ovPanel",true);return}
+const c=o.ch;CUR={o,id,t:c.t};
+if(c.t==="pg"){CUR.ord=shuffle([0,1,2,3]);CUR.gone=[];renderPg()}
+else if(c.t==="bs"){CUR.gone=[];renderBs()}
+else if(c.t==="or"){CUR.slots=Array(c.items.length).fill(null);CUR.lock=Array(c.items.length).fill(false);CUR.pool=shuffle(c.items.map((_,i)=>i));renderOr()}
+else if(c.t==="mt"){CUR.right=shuffle(c.pairs.map((_,i)=>i));CUR.pair=Array(c.pairs.length).fill(null);CUR.lock=Array(c.pairs.length).fill(false);CUR.sel=null;renderMt()}
+ov("ovPanel",true)}
+function renderPg(msg){const c=CUR.o.ch;P.innerHTML=head(CUR.o,"pg")+`<p class="q">${esc(c.q)}</p><div class="opts">${CUR.ord.map((k,n)=>`<button class="opt ${CUR.gone.includes(k)?"gone":""}" data-act="pg" data-k="${k}" ${CUR.gone.includes(k)?"disabled":""}><b>${"ABCD"[n]}</b><span>${esc(c.o[k])}</span></button>`).join("")}</div><p class="msg">${msg||""}</p>`}
+function renderBs(msg){const c=CUR.o.ch;P.innerHTML=head(CUR.o,"bs")+`<p class="q">${esc(c.q)}</p><div class="bsrow"><button class="bsb t ${CUR.gone.includes(1)?"gone":""}" data-act="bs" data-v="1" ${CUR.gone.includes(1)?"disabled":""}>${IC.check}Benar</button><button class="bsb f ${CUR.gone.includes(0)?"gone":""}" data-act="bs" data-v="0" ${CUR.gone.includes(0)?"disabled":""}>${IC.x}Salah</button></div><p class="msg">${msg||""}</p>`}
+function renderOr(msg,bad){const c=CUR.o.ch,full=CUR.slots.every(s=>s!==null);P.innerHTML=head(CUR.o,"or")+`<p class="q">${esc(c.q)}</p><p class="sub">Urutanmu (ketuk untuk mengembalikan)</p><ol class="slots">${CUR.slots.map((s,i)=>`<li><button data-act="unslot" data-i="${i}" class="${s===null?"":"f"} ${CUR.lock[i]?"lk":""} ${bad&&bad.includes(i)?"bad":""}">${s===null?"…":esc(c.items[s])}</button></li>`).join("")}</ol>
+${CUR.pool.length?`<p class="sub">Kartu acak</p><div class="pool">${CUR.pool.map(i=>`<button data-act="slot" data-i="${i}">${esc(c.items[i])}</button>`).join("")}</div>`:""}<button class="btn blue" data-act="chkor" ${full&&!bad?"":"disabled"}>Periksa urutan</button><p class="msg">${msg||""}</p>`}
+function renderMt(msg,bad){const c=CUR.o.ch,full=CUR.pair.every(p=>p!==null);const usedBy=j=>CUR.pair.indexOf(j);
+P.innerHTML=head(CUR.o,"mt")+`<p class="q">${esc(c.q)}</p><div class="mt"><div>${c.pairs.map((p,i)=>`<button class="mb L ${CUR.sel===i?"sel":""} ${CUR.lock[i]?"lk":""} ${bad&&bad.includes(i)?"bad":""}" data-act="L" data-i="${i}">${esc(p[0])}${CUR.pair[i]!==null?`<i style="background:${PAIRC[i]}">${i+1}</i>`:""}</button>`).join("")}</div><div>${CUR.right.map(j=>{const u=usedBy(j);return `<button class="mb ${u>-1&&CUR.lock[u]?"lk":""}" data-act="R" data-i="${j}">${esc(c.pairs[j][1])}${u>-1?`<i style="background:${PAIRC[u]}">${u+1}</i>`:""}</button>`}).join("")}</div></div><button class="btn blue" data-act="chkmt" ${full&&!bad?"":"disabled"}>Periksa pasangan</button><p class="msg">${msg||""}</p>`}
+function renderCode(msg){const o=CUR.o;P.innerHTML=head(o,"cd")+`<p class="q">Semua segel terbuka! Putar angka gembok sesuai petunjuk di pintu.</p><ol class="clue">${o.clue.map(c=>`<li>${esc(c)}</li>`).join("")}</ol><div class="wheels">${CUR.dig.map((d,i)=>`<div class="wheel"><button data-act="up" data-i="${i}" aria-label="Naikkan digit ${i+1}">${IC.up}</button><b>${d}</b><button data-act="dn" data-i="${i}" aria-label="Turunkan digit ${i+1}">${IC.dn}</button></div>`).join("")}</div><button class="btn" data-act="try">Buka gembok</button><p class="msg">${msg||""}</p>`}
+function shakeP(){P.classList.remove("shake");void P.offsetWidth;P.classList.add("shake")}
+function wrong(msg,credit){const first=!(CUR.id in S.cr);if(first)S.cr[CUR.id]=credit||0;S.score=Math.max(0,S.score-10);renderHud();snd("bad");shakeP();return first}
+function solve(credit,bonus){const first=!(CUR.id in S.cr);if(first)S.cr[CUR.id]=credit;const pts=bonus!=null?bonus:(first?100:40);S.score+=pts;S.solved[CUR.id]=1;renderHud();
+const o=CUR.o,door=!!o.door;snd(door?"door":"seal");flash=1;
+P.innerHTML=`<div class="okh">${IC.unlock}<h3>${door?"Gembok terbuka!":"Segel terbuka!"}</h3><em>+${pts}</em></div><p class="lab">${esc(o.lab)}</p><p class="ex">${esc(door?o.e:o.ch.e)}</p><button class="btn" data-act="${door?"exit":"close"}">${door?(o.exit?"Keluar dari sekolah":"Masuk ruangan berikutnya"):"Lanjut"}</button>`;
+setTimeout(()=>{const b=P.querySelector(".btn");if(b)b.focus({preventScroll:true})},60);
+if(!door){const s=sealCount(),n=R().objs.length;CUR.after=s>=n?"Semua segel terbuka! Periksa gembok pintu.":`Segel ${s} dari ${n} terbuka`}}
+P.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||b.disabled||!CUR&&b.dataset.act!=="close")return;const a=b.dataset.act,i=+b.dataset.i;
+if(a==="close"){ov("ovPanel",false);if(CUR&&CUR.after){toast(CUR.after)}CUR=null;return}
+if(a==="exit"){ov("ovPanel",false);CUR=null;startExit();return}
+const c=CUR.o.ch;
+if(a==="pg"){const k=+b.dataset.k;if(k===0)solve(1);else{CUR.gone.push(k);wrong();renderPg(`Belum tepat. Petunjuk: ${esc(c.h)}`)}}
+else if(a==="bs"){const v=b.dataset.v==="1";if(v===c.a)solve(1);else{CUR.gone.push(v?1:0);wrong();renderBs(`Belum tepat. Petunjuk: ${esc(c.h)}`)}}
+else if(a==="slot"){const s=CUR.slots.indexOf(null);if(s<0)return;CUR.slots[s]=i;CUR.pool=CUR.pool.filter(x=>x!==i);snd("tap");renderOr()}
+else if(a==="unslot"){if(CUR.lock[i]||CUR.slots[i]===null)return;CUR.pool.push(CUR.slots[i]);CUR.slots[i]=null;snd("tap");renderOr()}
+else if(a==="chkor"){const n=c.items.length,okc=CUR.slots.filter((s,j)=>s===j).length;if(okc===n){solve(1,(CUR.id in S.cr)?40:100);return}
+const bad=[];CUR.slots.forEach((s,j)=>{if(s===j)CUR.lock[j]=true;else bad.push(j)});const first=wrong(null,okc/n);renderOr(`${okc} dari ${n} kartu sudah di tempat yang tepat (hijau). Kartu merah kembali ke tumpukan.`,bad);
+setTimeout(()=>{if(!CUR||CUR.t!=="or")return;bad.forEach(j=>{CUR.pool.push(CUR.slots[j]);CUR.slots[j]=null});renderOr(`${okc} dari ${n} sudah tepat. Susun lagi kartu yang tersisa.`)},900)}
+else if(a==="L"){if(CUR.lock[i])return;if(CUR.pair[i]!==null){CUR.pair[i]=null}CUR.sel=i;snd("tap");renderMt()}
+else if(a==="R"){if(CUR.sel===null){renderMt("Ketuk aspek di kolom kiri dulu.");return}const u=CUR.pair.indexOf(i);if(u>-1){if(CUR.lock[u])return;CUR.pair[u]=null}CUR.pair[CUR.sel]=i;CUR.sel=null;snd("tap");renderMt()}
+else if(a==="chkmt"){const n=c.pairs.length,okc=CUR.pair.filter((p,j)=>p===j).length;if(okc===n){solve(1,(CUR.id in S.cr)?40:100);return}
+const bad=[];CUR.pair.forEach((p,j)=>{if(p===j)CUR.lock[j]=true;else bad.push(j)});wrong(null,okc/n);renderMt(`${okc} dari ${n} pasangan sudah tepat (hijau).`,bad);
+setTimeout(()=>{if(!CUR||CUR.t!=="mt")return;bad.forEach(j=>CUR.pair[j]=null);renderMt(`${okc} dari ${n} sudah tepat. Pasangkan lagi yang tersisa.`)},900)}
+else if(a==="up"||a==="dn"){CUR.dig[i]=(CUR.dig[i]+(a==="up"?1:9))%10;snd("tap");const w=P.querySelectorAll(".wheel b")[i];if(w)w.textContent=CUR.dig[i]}
+else if(a==="try"){const o=CUR.o,val=CUR.dig.join("");if(val===o.code){solve(1);doorOpen=.01;return}const wi=[...o.code].findIndex((ch,j)=>ch!==String(CUR.dig[j]));wrong();renderCode(`Gembok belum terbuka. Periksa lagi: ${esc(o.clue[o.dg[wi]])}`)}});
+
+/* flow */
+function startExit(){renderHud();if(!pathTo(5,2)){mode="exiting";exitT=0;return}mode="exit";pend=null}
+function nextRoom(){S.room++;if(S.room>=ROOMS.length){S.done=true;S.room=ROOMS.length;showEnd();return}loadRoom();fade=1;mode="enter";showIntro()}
+$("#bStart").addEventListener("click",()=>{snd("tap");ov("ovTitle",false);$("#iKelas").value=$("#iKelas").value||IDENT.kelas;ov("ovForm",true);setTimeout(()=>$("#iNama").focus(),60)});
+$("#fForm").addEventListener("submit",e=>{e.preventDefault();const n=$("#iNama").value.trim(),k=$("#iKelas").value.trim(),a=$("#iAbsen").value.trim();if(n.length<2){$("#fErr").textContent="Nama lengkap wajib diisi.";$("#iNama").focus();return}if(!k){$("#fErr").textContent="Kelas wajib diisi.";$("#iKelas").focus();return}$("#fErr").textContent="";S.p={nama:n,kelas:k,absen:a};snd("tap");ov("ovForm",false);S.room=0;loadRoom();showIntro()});
+
+/* result */
+function totals(){let c=0;for(const r of ROOMS){for(const o of r.objs)c+=S.cr[r.id+"."+o.id]||0;c+=S.cr[r.id+".door"]||0}return{c,nilai:Math.round(c/TOTAL*100)}}
+function predikat(v){return v>=80?["Sangat Baik","Ahli Bersuci. Kamu menguasai materi wudhu sekaligus penelitiannya."]:v>=60?["Baik","Penjelajah Tertib. Sebagian besar teka-teki terpecahkan sejak percobaan pertama."]:v>=40?["Cukup","Pencari Kunci. Ulangi bagian yang masih keliru, ya."]:["Kurang","Pemula. Pelajari lagi materinya bersama gurumu."]}
+function kode(){const s=[S.p.nama,S.p.kelas,S.p.absen,totals().nilai,S.score].join("|");let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36).toUpperCase().padStart(6,"0").slice(-6)}
+function showEnd(){const t=totals(),pr=predikat(t.nilai),first=Object.values(S.cr).filter(v=>v===1).length;
+$("#eWho").textContent=`${S.p.nama} · Kelas ${S.p.kelas}${S.p.absen?" · Absen "+S.p.absen:""}`;$("#eNilai").textContent=t.nilai;$("#ePred").textContent=pr[0];$("#eDesc").textContent=pr[1];
+$("#eStats").innerHTML=`<div><b>${first}/${TOTAL}</b>tepat sekali coba</div><div><b>${S.score}</b>skor game</div><div><b>${ROOMS.length}/${ROOMS.length}</b>ruangan</div>`;
+$("#eBars").innerHTML=ROOMS.map((r,i)=>{const n=r.objs.length+1,c=r.objs.reduce((s,o)=>s+(S.cr[r.id+"."+o.id]||0),0)+(S.cr[r.id+".door"]||0),p=Math.round(c/n*100);return `<div class="bar"><b>${r.name} · ${r.bab.split(" · ")[0]}</b><span>${p}%</span><div class="tr"><i class="${p>=80?"":p>=60?"mid":"low"}" style="width:${p}%"></i></div></div>`}).join("");
+$("#eKode").textContent=kode();
+const w=[];for(const r of ROOMS){for(const o of r.objs){const v=S.cr[r.id+"."+o.id];if(v!==undefined&&v<1)w.push({r:r.name,lab:o.lab,q:o.ch.q,e:o.ch.e,ans:o.ch.t==="pg"?o.ch.o[0]:o.ch.t==="bs"?(o.ch.a?"Benar":"Salah"):o.ch.t==="or"?o.ch.items.join(" → "):o.ch.pairs.map(p=>p[0]+": "+p[1]).join("; ")})}const v=S.cr[r.id+".door"];if(v!==undefined&&v<1)w.push({r:r.name,lab:"Kode gembok pintu",q:r.door.clue.join(" "),e:r.door.e,ans:r.door.code})}
+$("#eRevT").textContent=w.length?`Pembahasan yang keliru di percobaan pertama (${w.length})`:"Semua tepat sejak percobaan pertama. MasyaAllah!";
+$("#eList").innerHTML=w.map(x=>`<li><p><b>${esc(x.r)} · ${esc(x.lab)}:</b> ${esc(x.q)}</p><p class="r">Jawaban tepat: ${esc(x.ans)}</p><p>${esc(x.e)}</p></li>`).join("");
+$("#eNote").textContent="";$("#copyBox").hidden=true;ov("ovEnd",true)}
+function resText(){const t=totals(),d=new Date(),pad=x=>String(x).padStart(2,"0");return ["PINTU TERTIB · Escape Room Wudhu",`${IDENT.mapel} · ${IDENT.materi}`,`Nama: ${S.p.nama}`,`Kelas: ${S.p.kelas}${S.p.absen?" | Absen: "+S.p.absen:""}`,`Nilai pemahaman: ${t.nilai} (${predikat(t.nilai)[0]})`,`Skor game: ${S.score}`,...ROOMS.map(r=>{const n=r.objs.length+1,c=r.objs.reduce((s,o)=>s+(S.cr[r.id+"."+o.id]||0),0)+(S.cr[r.id+".door"]||0);return `- ${r.name} (${r.bab}): ${Math.round(c/n*100)}%`}),`Kode verifikasi: ${kode()}`,`Waktu: ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}.${pad(d.getMinutes())}`].join("\n")}
+$("#eCopy").addEventListener("click",async()=>{const t=resText();try{await navigator.clipboard.writeText(t);$("#eNote").textContent="Hasil tersalin. Tempel dan kirim ke gurumu, ya!"}catch(e){const b=$("#copyBox");b.hidden=false;b.value=t;b.focus();b.select();$("#eNote").textContent="Salin teks di bawah ini secara manual."}});
+$("#eAgain").addEventListener("click",()=>{S={p:null,room:0,solved:{},cr:{},score:0,mute:S.mute,done:false};ov("ovEnd",false);loadRoom();ov("ovTitle",true)});
+
+/* boot */
+$("#chips").innerHTML=[IDENT.mapel,"Kelas "+IDENT.kelas,ROOMS.length+" ruangan · "+TOTAL+" teka-teki"].map(c=>`<span class="chip">${c}</span>`).join("");
+$("#materi").innerHTML=`Materi: <b>${IDENT.materi}</b>`;
+window.PT={ROOMS,state:()=>S,pl};
+window.claude?.hot?.snapshot?.(()=>({p:S.p,room:S.room,solved:S.solved,cr:S.cr,score:S.score,mute:S.mute,done:S.done}));
+function start(d){updMute();fit();if(d&&d.p){S={...S,...d,solved:d.solved||{},cr:d.cr||{}};if(S.done){loadRoom();showEnd()}else{loadRoom();showIntro()}}else{loadRoom();ov("ovTitle",true)}requestAnimationFrame(loop)}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+}
+</script>
+</body>
+</html>
