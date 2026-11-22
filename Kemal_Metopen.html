@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Jejak Harta 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE occasion: a Roblox-style 3D treasure hunt for PAI methodology students, bright and playful
+   IDEA a blocky open world of forest, lake and snowy mountains where an explorer walks to dig treasure
+   PICTURE the live 3D world itself, full screen, with a blocky avatar, X marks, gold beacons and a summit chest
+   COLOUR sky blue and grass green from the world, parchment cards with brown ink, treasure gold, map red
+   TYPE Pirata One for titles + Baloo 2 headings + Nunito text
+   LAYOUT world full-bleed; treasure bar and goal at top, minimap top-right, joystick bottom-left, dig and jump bottom-right */
+:root{color-scheme:light;--parch:#f4e5c0;--parch2:#e6cf98;--ink:#3a2614;--red:#b8332a;--gold:#f2b632;--jade:#23917f;--mute:#7a5d3d;--bad:#d4473b}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+[hidden]{display:none!important}
+body{background:linear-gradient(#5fb3e8 0%,#a9dbf4 45%,#d6eef3 62%,#d6eef3 100%);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit}
+h1,h2,h3{font-family:'Baloo 2',Nunito,system-ui,sans-serif;line-height:1.05;letter-spacing:-.02em;margin:0;text-wrap:balance}
+svg{display:block}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+#touch{position:fixed;inset:0;z-index:2;touch-action:none;cursor:grab}
+#labels{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:rgba(58,38,20,.82);color:#fff3cf;font:800 13px/1.15 Nunito,system-ui,sans-serif;padding:5px 9px;border-radius:9px;white-space:nowrap;text-align:center}
+.lbl small{display:block;font-size:11px;color:#f2b632}
+.lbl.lock{background:rgba(70,70,70,.7);color:#e6e6e6}
+.lbl.lock small{color:#ccc}
+.lbl.done{background:rgba(35,145,127,.85)}
+.lbl.done small{color:#dff7ef}
+#top{position:fixed;left:0;right:0;top:0;z-index:5;padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));display:grid;gap:6px;pointer-events:none;max-width:620px;margin:0 auto}
+#top>*{pointer-events:auto}
+.card{background:var(--parch);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 rgba(58,38,20,.6)}
+.hud{display:flex;align-items:center;gap:10px;padding:6px 10px}
+.coins{display:flex;align-items:center;gap:5px;font:800 20px/1 'Baloo 2',Nunito,system-ui,sans-serif;white-space:nowrap}
+.coins svg{width:22px;height:22px}
+.inv{flex:1;display:flex;flex-direction:column;gap:3px;align-items:center}
+.gems,.clues{display:flex;gap:4px}
+.gems svg{width:19px;height:19px}
+.clues span{width:21px;height:21px;border-radius:6px;border:2px dashed #b99a66;display:grid;place-items:center;font:800 13px/1 'Baloo 2',Nunito,system-ui,sans-serif}
+.clues span.on{border:2px solid var(--ink);background:#fff3cf}
+.mute{width:40px;height:40px;flex:none;display:grid;place-items:center;border:3px solid var(--ink);border-radius:12px;background:#fffaf0;box-shadow:0 3px 0 var(--ink);cursor:pointer}
+.mute svg{width:21px;height:21px;fill:var(--ink)}
+.row2{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.goal{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:14px;background:rgba(58,38,20,.82);color:#fff3cf;max-width:calc(100% - 128px)}
+.goal .ar{width:34px;height:34px;flex:none;border-radius:50%;background:var(--gold);display:grid;place-items:center;border:2px solid #fff3cf}
+.goal .ar svg{width:20px;height:20px;fill:var(--ink);transition:transform .1s linear}
+.goal b{display:block;font:800 14px/1.15 Nunito,system-ui,sans-serif}
+.goal small{display:block;font:700 12.5px/1.2 Nunito,system-ui,sans-serif;color:#f2d79a}
+#mini{width:112px;height:112px;border-radius:14px;border:3px solid var(--ink);box-shadow:0 4px 0 rgba(58,38,20,.6);background:#cfe9f3;flex:none}
+#joy{position:fixed;z-index:4;left:max(18px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.28);border:3px solid rgba(255,255,255,.75);touch-action:none;box-shadow:inset 0 0 0 10px rgba(58,38,20,.08)}
+#knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,255,255,.9);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(58,38,20,.5)}
+#btns{position:fixed;z-index:4;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;gap:12px}
+.rb{border:3px solid var(--ink);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font:800 14px/1 'Baloo 2',Nunito,system-ui,sans-serif;cursor:pointer;touch-action:none;box-shadow:0 4px 0 var(--ink)}
+.rb:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.rb svg{width:28px;height:28px;fill:var(--ink)}
+#bJump{width:72px;height:72px;background:#fffaf0}
+#bAct{width:100px;height:100px;background:var(--gold);font-size:17px}
+#bAct svg{width:36px;height:36px}
+#bAct:disabled{background:#cbbf9f;opacity:.75;box-shadow:0 4px 0 rgba(58,38,20,.5)}
+#bAct:not(:disabled){animation:pulse 1.1s ease-in-out infinite alternate}
+@keyframes pulse{to{box-shadow:0 4px 0 var(--ink),0 0 0 9px rgba(242,182,50,.5)}}
+#prompt{position:fixed;z-index:4;left:50%;bottom:max(150px,calc(env(safe-area-inset-bottom) + 140px));transform:translateX(-50%);margin:0;background:rgba(58,38,20,.85);color:#fff3cf;font:800 15px/1.25 Nunito,system-ui,sans-serif;padding:8px 14px;border-radius:12px;max-width:80%;text-align:center;pointer-events:none}
+#prompt:empty{display:none}
+#prompt b{color:var(--gold)}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 190px);transform:translate(-50%,-10px);opacity:0;transition:.3s;background:var(--ink);color:#fff3cf;font:800 15px/1.3 Nunito,system-ui,sans-serif;padding:10px 16px;border-radius:12px;pointer-events:none;max-width:86%;text-align:center;z-index:40}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:11px 16px;font:800 18px/1 'Baloo 2',Nunito,system-ui,sans-serif;border:3px solid var(--ink);border-radius:14px;background:var(--gold);box-shadow:0 4px 0 var(--ink);cursor:pointer;color:var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:#fffaf0}
+.btn.jade{background:var(--jade);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--ink)}
+.ov{position:fixed;inset:0;z-index:10;display:none;place-items:center;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom));background:rgba(20,40,30,.5);overflow:auto}
+.ov.on{display:grid;animation:fade .25s}
+#ovTitle{background:linear-gradient(rgba(20,40,30,.05),rgba(20,40,30,.55));align-content:space-between;justify-items:center}
+@keyframes fade{from{opacity:0}}
+.ov>.card{width:100%;max-width:480px;padding:16px;animation:rise .3s ease-out;max-height:calc(100svh - 28px);overflow:auto}
+@keyframes rise{from{transform:translateY(14px)}}
+.logo{text-align:center}
+.logo h1{font:400 clamp(42px,12vw,60px)/.95 'Pirata One',Georgia,serif;color:var(--red);letter-spacing:0}
+.logo p{margin:6px 0 10px;font:800 16px/1.2 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.chip{font:800 13px/1 Nunito,system-ui,sans-serif;padding:7px 10px;border-radius:999px;background:#fff3cf;border:2px solid var(--ink)}
+details.how{margin-top:12px;background:#fffaf0;border:2px solid var(--ink);border-radius:14px;text-align:left}
+details.how summary{cursor:pointer;list-style:none;padding:11px 14px;font:800 16px/1.2 'Baloo 2',Nunito,system-ui,sans-serif;display:flex;justify-content:space-between}
+details.how summary::-webkit-details-marker{display:none}
+details.how summary::after{content:"+";font-size:20px;line-height:.8}
+details.how[open] summary::after{content:"–"}
+details.how ul{margin:0;padding:0 14px 12px 30px;font-size:14.5px;max-height:34vh;overflow:auto}
+details.how li{margin:4px 0}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-weight:800;font-size:15px}
+.field input{font:700 16px Nunito,system-ui,sans-serif;padding:12px 14px;border:3px solid var(--ink);border-radius:14px;background:#fffaf0;color:var(--ink);width:100%;user-select:text}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.err{color:var(--bad);font-weight:800;font-size:14px;min-height:20px;margin:0 0 6px}
+.dlg{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:start}
+.av{width:70px;height:70px;border-radius:50%;border:3px solid var(--ink);overflow:hidden;background:#bfe3e8}
+.who{font-size:13px;color:var(--mute);font-weight:700}
+.who b{font:800 18px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink);display:block}
+.say{margin:6px 0 0;font-size:16px;font-weight:600;min-height:4.5em}
+.ttl{font:400 34px/1 'Pirata One',Georgia,serif;color:var(--red);letter-spacing:0}
+.kaj{display:inline-block;font:800 13px/1.2 Nunito,system-ui,sans-serif;padding:6px 10px;border-radius:10px;background:var(--ink);color:#fff;margin:0 0 6px}
+.ph{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ph b{font:800 17px/1.15 'Baloo 2',Nunito,system-ui,sans-serif;flex:1}
+.tag{font:800 12.5px/1 Nunito,system-ui,sans-serif;padding:6px 9px;border-radius:999px;border:2px solid var(--ink);background:#fff3cf;white-space:nowrap}
+.tag.g-bs{background:#ffe0d6}.tag.g-ms{background:#dff1ff}.tag.g-or{background:#dcf2e8}.tag.g-mt{background:#f6e0ff}
+.x{width:40px;height:40px;border-radius:12px;border:3px solid var(--ink);background:#fffaf0;display:grid;place-items:center;cursor:pointer;flex:none}
+.x svg{width:20px;height:20px;fill:var(--ink)}
+.q{margin:0 0 12px;font-size:17px;font-weight:800;line-height:1.45}
+.opts{display:grid;gap:9px}
+.opt{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center;text-align:left;width:100%;min-height:54px;padding:9px 12px;border:3px solid var(--ink);border-radius:15px;background:#fffaf0;box-shadow:0 3px 0 var(--ink);font:700 15.5px/1.35 Nunito,system-ui,sans-serif;cursor:pointer}
+.opt b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--parch2);border:2px solid var(--ink);font:800 17px/1 'Baloo 2',Nunito,system-ui,sans-serif}
+.opt.gone{opacity:.38;background:#fde3df;border-color:var(--bad);box-shadow:none;text-decoration:line-through;cursor:default}
+.opt.on{background:#dff1ff;border-color:#1f6f9f}
+.opt.on b{background:#1f6f9f;color:#fff}
+.opt.lk{background:#d7f0e8;border-color:var(--jade);cursor:default}
+.opt.lk b{background:var(--jade);color:#fff}
+.opt.bad{background:#fde3df;border-color:var(--bad)}
+.bsrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.bsb{min-height:96px;border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:800 23px/1 'Baloo 2',Nunito,system-ui,sans-serif;cursor:pointer}
+.bsb svg{width:30px;height:30px;fill:var(--ink)}
+.bsb.t{background:#cdeee2}.bsb.f{background:#fbd5cf}
+.bsb.gone{opacity:.35;box-shadow:none;cursor:default}
+.msg{margin:10px 0 0;font-weight:800;font-size:15px;color:#a3291f;background:#fde3df;border:2px solid var(--bad);border-radius:12px;padding:8px 10px}
+.msg:empty{display:none}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.sub{margin:0 0 6px;font-size:13px;font-weight:800;color:var(--mute)}
+.slots{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px;counter-reset:s}
+.slots button{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center;width:100%;min-height:44px;padding:6px 10px;text-align:left;border:2px dashed #b99a66;border-radius:12px;background:#fbf2dc;font:700 15px/1.25 Nunito,system-ui,sans-serif;color:var(--mute);cursor:pointer}
+.slots button::before{content:counter(s);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--parch2);font:800 15px/1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink)}
+.slots button.f{border:2px solid var(--ink);background:#fffaf0;color:var(--ink)}
+.slots button.f::before{background:var(--gold)}
+.slots button.lk{border-color:var(--jade);background:#d7f0e8;cursor:default}
+.slots button.lk::before{background:var(--jade);color:#fff}
+.slots button.bad{border-color:var(--bad);background:#fde3df}
+.pool{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.pool button{border:2px solid var(--ink);border-radius:12px;background:#fff3cf;box-shadow:0 3px 0 var(--ink);padding:8px 11px;font:800 14.5px/1.2 Nunito,system-ui,sans-serif;cursor:pointer}
+.mt{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px;margin-bottom:12px}
+.mt div{display:grid;gap:7px;align-content:start}
+.mb{position:relative;min-height:60px;padding:8px 10px;text-align:left;border:2px solid var(--ink);border-radius:12px;background:#fffaf0;box-shadow:0 3px 0 var(--ink);font:800 13.5px/1.25 Nunito,system-ui,sans-serif;cursor:pointer}
+.mb.L{background:#f6e0ff;font-size:15px}
+.mb.sel{outline:3px solid #1f6f9f;outline-offset:1px}
+.mb i{position:absolute;top:-8px;right:-6px;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:800 13px/1 'Baloo 2',Nunito,system-ui,sans-serif;font-style:normal;color:#fff}
+.mb.lk{border-color:var(--jade);background:#d7f0e8;cursor:default}
+.mb.bad{border-color:var(--bad);background:#fde3df}
+.rw{text-align:center}
+.rw svg.chest{width:150px;height:120px;margin:0 auto;overflow:visible}
+.lid{transform-box:fill-box;transform-origin:50% 100%;animation:lid .6s .15s cubic-bezier(.3,1.5,.5,1) forwards}
+@keyframes lid{to{transform:rotate(-28deg) translate(-4px,-10px)}}
+.glow{opacity:0;animation:gl .6s .4s forwards}
+@keyframes gl{to{opacity:1}}
+.rw h3{font-size:28px;margin-top:4px}
+.rw em{display:inline-block;margin:6px 0 10px;font-style:normal;font:800 18px/1 'Baloo 2',Nunito,system-ui,sans-serif;background:var(--ink);color:var(--gold);padding:7px 12px;border-radius:12px}
+.ex{margin:0 0 14px;font-size:15.5px;text-align:left}
+.cf{position:fixed;width:14px;height:14px;border-radius:50%;z-index:30;pointer-events:none;background:radial-gradient(circle at 35% 35%,#fff3b0,#f2b632 55%,#b9821c);border:1.5px solid #7a5310;animation:cf 1s ease-out forwards}
+@keyframes cf{to{transform:translate(var(--dx),var(--dy)) rotate(360deg);opacity:0}}
+.scroll{position:relative;margin:4px auto 12px;max-width:340px;background:#fbf0d3;border:3px solid var(--ink);border-radius:8px;padding:16px 18px;text-align:center;animation:unroll .6s ease-out}
+.scroll::before,.scroll::after{content:"";position:absolute;left:-8px;right:-8px;height:12px;background:#d9b878;border:3px solid var(--ink);border-radius:8px}
+.scroll::before{top:-9px}.scroll::after{bottom:-9px}
+@keyframes unroll{from{clip-path:inset(45% 0 45% 0)}to{clip-path:inset(-20px -20px -20px -20px)}}
+.letter{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:14px;background:var(--ink);color:var(--gold);font:400 44px/1 'Pirata One',Georgia,serif;margin:6px 0}
+.scroll p{margin:6px 0 0;font-weight:700}
+.tiles{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tiles button,.lslot{width:52px;height:56px;border:3px solid var(--ink);border-radius:12px;font:400 32px/1 'Pirata One',Georgia,serif;display:grid;place-items:center;cursor:pointer}
+.tiles button{background:#fff3cf;box-shadow:0 3px 0 var(--ink)}
+.lslot{background:var(--ink);color:var(--gold)}
+.lslot.e{background:#fbf2dc;border-style:dashed;color:var(--mute)}
+.rap h2{font-size:clamp(28px,8vw,36px)}
+.who2{margin:6px 0 0;color:var(--mute);font-weight:700}
+.score2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;margin:12px 0 4px}
+.nilai{font:800 clamp(64px,20vw,86px)/.9 'Baloo 2',Nunito,system-ui,sans-serif}
+.pred{display:inline-flex;gap:8px;align-items:center;font:800 16px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;padding:7px 12px;border-radius:12px;background:var(--gold);border:2px solid var(--ink)}
+.pred b{font:400 26px/1 'Pirata One',Georgia,serif;color:var(--red)}
+.pred+p{margin:6px 0 0;font-size:14px;color:var(--mute);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.stats div{background:#fffaf0;border:2px solid var(--ink);border-radius:14px;padding:8px;font-size:12.5px;font-weight:700;color:var(--mute)}
+.stats b{display:block;font:800 22px/1.1 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink);white-space:nowrap}
+.bars{display:grid;gap:10px}
+.br{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:14px}
+.br b{font-weight:800}
+.br span{color:var(--mute);font-weight:700;white-space:nowrap}
+.br .tr{grid-column:1/-1;height:14px;border-radius:9px;background:#efe0bd;border:2px solid var(--ink);overflow:hidden}
+.br .tr i{display:block;height:100%;background:var(--jade)}
+.br .tr i.mid{background:var(--gold)}.br .tr i.low{background:var(--bad)}
+.kode{margin:12px 0 0;font-size:13px;color:var(--mute);font-weight:700}
+.kode b{font:800 16px 'Baloo 2',Nunito,system-ui,sans-serif;color:var(--ink);letter-spacing:.06em}
+.rev{margin-top:10px}
+.rev summary{cursor:pointer;font:800 17px/1.2 'Baloo 2',Nunito,system-ui,sans-serif}
+.rev ol{margin:10px 0 0;padding-left:20px;font-size:14.5px}
+.rev li{margin-bottom:12px}
+.rev p{margin:2px 0}
+.rev .r{color:var(--jade);font-weight:800}
+#copyBox{width:100%;height:150px;font:13px/1.4 Nunito,system-ui,sans-serif;border:2px solid var(--ink);border-radius:12px;padding:8px;margin-top:8px;user-select:text}
+.note{margin:8px 0 0;font-size:14px;font-weight:700;color:var(--jade);text-align:center;min-height:20px}
+.endg{display:grid;gap:10px;margin-top:12px}
+#nogl{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:#d6eef3}
+@media (max-width:380px){#joy{width:116px;height:116px}#bAct{width:90px;height:90px}#bJump{width:62px;height:62px}#mini{width:96px;height:96px}.goal{max-width:calc(100% - 110px)}}
+@media (max-height:620px){#mini{width:88px;height:88px}#joy{width:108px;height:108px}#bAct{width:84px;height:84px}#prompt{bottom:118px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="Dunia 3D hutan dan pegunungan"></canvas>
+<div id="touch"></div>
+<div id="labels"></div>
+<div id="top">
+ <header class="card hud">
+  <div class="coins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f2b632" stroke="#7a5310" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="none" stroke="#b9821c" stroke-width="1.6"/></svg><span id="hCoin">0</span></div>
+  <div class="inv"><div class="gems" id="hGems" aria-label="Permata"></div><div class="clues" id="hClues" aria-label="Huruf petunjuk"></div></div>
+  <button class="mute" aria-label="Suara"></button>
+ </header>
+ <div class="row2">
+  <div class="goal" id="goal"><span class="ar"><svg id="gArrow" viewBox="0 0 24 24"><path d="M12 2 20 20 12 15 4 20z"/></svg></span><span><b id="gName">Dermaga Konsep</b><small id="gDist"></small></span></div>
+  <canvas id="mini" width="224" height="224" aria-label="Peta mini"></canvas>
+ </div>
+</div>
+<div id="joy" aria-label="Joystick"><div id="knob"></div></div>
+<div id="btns">
+ <button class="rb" id="bJump" aria-label="Lompat"><svg viewBox="0 0 24 24"><path d="M12 3 4 13h5v8h6v-8h5z"/></svg>Lompat</button>
+ <button class="rb" id="bAct" disabled aria-label="Gali"><svg viewBox="0 0 24 24"><path d="M14.8 3.2 20.8 9.2 18.7 11.3 17.3 9.9 11.6 15.6 12.3 16.3 9.5 19.1 4.9 14.5 7.7 11.7 8.4 12.4 14.1 6.7 12.7 5.3z"/><path d="M3 21l3.4-3.4" stroke="#3a2614" stroke-width="2.4" stroke-linecap="round"/></svg><span id="actT">Gali</span></button>
+</div>
+<p id="prompt"></p>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div class="ov" id="ovTitle">
+ <div></div>
+ <div class="card logo" style="max-width:480px;width:100%;padding:16px">
+  <h1>Jejak Harta Peneliti</h1>
+  <p>Treasure Hunt 3D · Metodologi Penelitian PAI</p>
+  <div class="chips" id="chips"></div>
+  <details class="how"><summary>Cara main</summary><ul>
+   <li>Jelajahi hutan, danau, dan pegunungan Pulau Metodologi. Ada 5 lokasi, satu untuk tiap bahan kajian di RPS.</li>
+   <li>HP: geser joystick kiri untuk berjalan, geser layar untuk memutar kamera, tombol Lompat untuk melompat.</li>
+   <li>Laptop: WASD atau panah untuk berjalan, seret mouse untuk memutar kamera, Spasi untuk melompat, E untuk menggali.</li>
+   <li>Ikuti sorotan cahaya emas dan panah tujuan. Dekati tanda X merah lalu tekan Gali untuk membuka tantangannya.</li>
+   <li>Tantangan selesai, peti terbuka dan kamu dapat koin. Semua X di satu lokasi selesai, kamu dapat permata dan satu huruf petunjuk.</li>
+   <li>Kumpulkan 5 huruf, lalu daki Puncak Harta untuk membuka peti harta karun.</li>
+   <li>Tidak ada batas waktu. Salah boleh mencoba lagi, tapi nilai rapor dihitung dari percobaan pertama.</li>
+  </ul></details>
+  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="bStart">Mulai berpetualang</button><button class="mute" aria-label="Suara" style="width:50px;height:50px"></button></div>
+ </div>
+</div>
+
+<div class="ov" id="ovForm"><form class="card" id="fForm" novalidate>
+ <h2 style="font-size:30px;margin-bottom:4px">Data penjelajah</h2>
+ <p style="margin:0 0 14px;color:var(--mute);font-weight:700">Isi dulu supaya rapormu tercatat.</p>
+ <div class="field"><label for="iNama">Nama lengkap</label><input id="iNama" autocomplete="name" maxlength="40" placeholder="Contoh: Aisyah Putri"></div>
+ <div class="two">
+  <div class="field"><label for="iKelas">Kelas/rombel</label><input id="iKelas" maxlength="16" placeholder="PAI A"></div>
+  <div class="field"><label for="iNim">NIM / no. absen</label><input id="iNim" inputmode="numeric" maxlength="14" placeholder="opsional"></div>
+ </div>
+ <p class="err" id="fErr"></p>
+ <button class="btn" type="submit">Lanjut</button>
+</form></div>
+
+<div class="ov" id="ovStory"><div class="card">
+ <div class="dlg"><div class="av" id="stAv"></div><div><div class="who"><b>Kak Beo</b>pemandu petualangan</div><p class="say" id="stSay"></p></div></div>
+ <button class="btn" id="stNext" style="margin-top:12px">Lanjut</button>
+</div></div>
+
+<div class="ov" id="ovPanel"><div class="card" id="panel"></div></div>
+
+<div class="ov" id="ovEnd"><div class="card rap">
+ <h2>Harta karun ditemukan!</h2>
+ <p class="who2" id="eWho"></p>
+ <div class="score2"><div class="nilai" id="eNilai">0</div><div><span class="pred" id="ePred"></span><p id="eDesc"></p></div></div>
+ <div class="stats" id="eStats"></div>
+ <div class="bars" id="eBars"></div>
+ <p class="kode">Kode verifikasi: <b id="eKode"></b></p>
+ <details class="rev"><summary id="eRevT">Pembahasan</summary><ol id="eList"></ol></details>
+ <div class="endg">
+  <button class="btn" id="eCopy">Salin hasil untuk dosen/guru</button>
+  <p class="note" id="eNote"></p>
+  <textarea id="copyBox" hidden readonly aria-label="Teks hasil"></textarea>
+  <button class="btn alt" id="eFree">Lanjut jalan-jalan</button>
+  <button class="btn alt" id="eAgain">Berburu lagi dari awal</button>
+ </div>
+</div></div>
+<div id="nogl" hidden><div class="card" style="padding:18px;max-width:420px"><h2 style="font-size:26px">Perangkat belum mendukung 3D</h2><p>Browser ini tidak bisa menjalankan WebGL. Coba buka dengan Chrome versi terbaru, atau aktifkan akselerasi grafis.</p></div></div>
+
+<script>
+{
+const IDENT={mk:"Metodologi Penelitian PAI"};
+const LOC=[
+{id:"l1",name:"Dermaga Konsep",kaj:"Bahan Kajian 1 · Konsep dan bentuk penelitian kualitatif",x:95,y:500,ic:"dock",letter:"M",gem:"#2f7fd1",
+intro:"Selamat datang di Dermaga Konsep! Sebelum berlayar jauh, kenali dulu bentuk-bentuk penelitian: kualitatif deskriptif, PTK, dan R&D.",
+clue:"Huruf pertama sudah di tanganmu. Lanjutkan ke Hutan Langkah: di sana jejak penelitian kualitatif tersusun dari fokus sampai laporan.",
+ch:[
+{t:"pg",q:"Menurut Sugiyono, penelitian kualitatif meneliti objek pada kondisi alamiah. Siapa yang menjadi instrumen kuncinya?",o:["Peneliti itu sendiri","Angket tertutup yang sudah divalidasi","Lembar tes yang sudah reliabel","Perangkat lunak analisis data"],h:"Dalam kualitatif, alat utama pengumpul data adalah manusia.",e:"Penelitian kualitatif berlandaskan filsafat postpositivisme, meneliti objek pada kondisi alamiah, dan menempatkan peneliti sebagai instrumen kunci (Sugiyono)."},
+{t:"ms",q:"Pilih SEMUA ciri penelitian kualitatif deskriptif.",o:[["Dilakukan pada kondisi alamiah",1],["Data berupa kata-kata dan gambar",1],["Analisis data bersifat induktif",1],["Lebih menekankan makna daripada generalisasi",1],["Menguji hipotesis dengan statistik",0],["Sampel diambil secara acak",0]],h:"Ada empat yang benar. Uji hipotesis dan sampel acak adalah ciri penelitian kuantitatif.",e:"Ciri kualitatif menurut Sugiyono: kondisi alamiah, data deskriptif berupa kata dan gambar, analisis induktif, dan menekankan makna. Uji hipotesis statistik dan sampel acak adalah ciri kuantitatif."},
+{t:"bs",q:"Penelitian tindakan kelas (PTK) dilakukan guru di kelasnya sendiri untuk memperbaiki praktik pembelajaran, bukan untuk menggeneralisasi temuan ke semua sekolah.",a:true,h:"Ingat sifat PTK: reflektif dan situasional.",e:"PTK bersifat reflektif, dilakukan oleh guru sebagai pelaku tindakan, situasional-spesifik, dan bertujuan memecahkan masalah praktis di kelasnya, sering secara kolaboratif."},
+{t:"pg",q:"Seorang guru PAI ingin membuat aplikasi panduan wudhu, lalu menguji kelayakannya lewat ahli materi, ahli media, dan siswa. Metode yang paling tepat adalah …",o:["Penelitian dan pengembangan (R&D)","Penelitian tindakan kelas (PTK)","Kualitatif deskriptif","Fenomenologi"],h:"Kata kuncinya: menghasilkan produk dan menguji kelayakannya.",e:"R&D digunakan untuk menghasilkan produk tertentu dan menguji keefektifannya (Sugiyono). Borg & Gall menyebutnya proses mengembangkan dan memvalidasi produk pendidikan."},
+{t:"or",q:"Susun enam langkah awal penelitian R&D menurut Sugiyono.",items:["Potensi dan masalah","Pengumpulan data","Desain produk","Validasi desain","Revisi desain","Uji coba produk"],e:"Langkah R&D Sugiyono: potensi dan masalah, pengumpulan data, desain produk, validasi desain, revisi desain, uji coba produk, revisi produk, uji coba pemakaian, revisi produk, lalu produksi massal."}
+]},
+{id:"l2",name:"Hutan Langkah",kaj:"Bahan Kajian 2 · Langkah-langkah penelitian kualitatif",x:295,y:420,ic:"forest",letter:"A",gem:"#2e9e5b",
+intro:"Hutan Langkah penuh jejak kaki. Ikuti jejak penelitian kualitatif: merumuskan fokus, memilih informan dan pendekatan, mengumpulkan sampai menganalisis data.",
+clue:"Huruf kedua! Sekarang menuju Kuil Etika. Penjaganya hanya membuka pintu bagi peneliti yang jujur dan menghormati informan.",
+ch:[
+{t:"pg",q:"Manakah rumusan masalah yang paling sesuai untuk penelitian kualitatif PAI?",o:["Bagaimana guru PAI membina budaya salat berjamaah di sekolah?","Seberapa besar pengaruh salat berjamaah terhadap nilai rapor?","Apakah ada perbedaan nilai PAI antara kelas X dan kelas XI?","Berapa persen siswa yang rutin salat berjamaah di sekolah?"],h:"Kualitatif bertanya “bagaimana” dan “mengapa”, bukan mengukur.",e:"Rumusan masalah kualitatif bersifat terbuka dan menggali proses serta makna, bukan mengukur pengaruh, perbedaan, atau persentase."},
+{t:"bs",q:"Dalam penelitian kualitatif, teori dipakai untuk diuji kebenarannya melalui hipotesis statistik.",a:false,h:"Pikirkan fungsi teori dan penelitian terdahulu di proposal kualitatif.",e:"Teori dan penelitian terdahulu menjadi landasan konseptual dan bekal memahami konteks, serta menunjukkan celah penelitian. Teori tidak diuji lewat hipotesis statistik."},
+{t:"pg",q:"Peneliti mewawancarai seorang ustaz. Ustaz itu merekomendasikan dua santri senior, lalu santri merekomendasikan alumni. Teknik memilih informan ini disebut …",o:["Snowball sampling","Purposive sampling","Random sampling","Quota sampling"],h:"Bayangkan bola salju yang makin besar saat digulirkan.",e:"Snowball sampling: informan bertambah lewat rujukan informan sebelumnya. Purposive sampling: informan dipilih sengaja berdasarkan kriteria tertentu."},
+{t:"mt",q:"Pasangkan pendekatan kualitatif dengan contoh masalah PAI yang paling cocok. Ketuk pendekatan, lalu ketuk pasangannya.",pairs:[["Studi kasus","Satu kasus terbatas, mis. program tahfiz di satu sekolah"],["Fenomenologi","Makna pengalaman, mis. mualaf belajar salat"],["Etnografi","Budaya kelompok, mis. tradisi pesantren salaf"],["Grounded theory","Membangun teori baru dari data lapangan"]],e:"Creswell membedakan lima pendekatan kualitatif: naratif, fenomenologi, grounded theory, etnografi, dan studi kasus. Pilih yang sesuai dengan masalah PAI yang dikaji."},
+{t:"pg",q:"Peneliti ikut tinggal di asrama pesantren dan terlibat dalam kegiatan santri sambil mencatat perilaku mereka. Teknik pengumpulan data ini adalah …",o:["Observasi partisipatif","Observasi non-partisipan","Wawancara terstruktur","Studi dokumentasi"],h:"Peneliti terlibat langsung dalam kegiatan yang diamati.",e:"Dalam observasi partisipatif, peneliti terlibat dalam kegiatan yang diamati. Data diperkaya lewat wawancara mendalam dan studi dokumentasi, dengan pedoman yang disiapkan sebelumnya."},
+{t:"or",q:"Susun alur analisis data kualitatif model Miles & Huberman.",items:["Pengumpulan data","Reduksi data","Penyajian data","Penarikan kesimpulan dan verifikasi"],e:"Model interaktif Miles & Huberman: data dikumpulkan, direduksi, disajikan, lalu ditarik kesimpulan dan diverifikasi. Prosesnya berlangsung terus-menerus sampai data jenuh."}
+]},
+{id:"l3",name:"Kuil Etika",kaj:"Bahan Kajian 3 · Etika penelitian kualitatif",x:100,y:330,ic:"temple",letter:"K",gem:"#e8e4d8",
+intro:"Kuil Etika dijaga ketat. Hanya peneliti yang meminta izin, menjaga rahasia informan, dan jujur secara ilmiah yang boleh menggali hartanya.",
+clue:"Huruf ketiga! Naiki Menara Naskah. Di puncaknya tersimpan rahasia menyusun proposal dan laporan yang rapi.",
+ch:[
+{t:"pg",q:"Sebelum wawancara, peneliti menjelaskan tujuan penelitian, risikonya, dan hak informan untuk mundur kapan saja, lalu meminta persetujuan. Prosedur ini disebut …",o:["Informed consent","Member checking","Audit trail","Purposive sampling"],h:"Persetujuan setelah informan mendapat penjelasan yang cukup.",e:"Informed consent: informan memutuskan ikut serta secara sukarela setelah memahami tujuan, risiko, dan haknya, termasuk hak mundur kapan saja."},
+{t:"bs",q:"Agar data lebih autentik, peneliti boleh merekam wawancara diam-diam tanpa sepengetahuan informan.",a:false,h:"Ingat hak informan atas persetujuan.",e:"Perekaman harus seizin informan. Merekam diam-diam melanggar informed consent dan hak informan."},
+{t:"ms",q:"Pilih SEMUA tindakan yang menjaga kerahasiaan informan.",o:[["Mengganti nama asli dengan inisial atau kode",1],["Menyimpan rekaman dan transkrip dengan aman",1],["Tidak membuka identitas tanpa izin informan",1],["Mencantumkan nomor HP informan di lampiran",0],["Mengunggah video wawancara ke media sosial",0]],h:"Ada tiga yang benar. Pikirkan mana yang membuka identitas.",e:"Kerahasiaan dijaga dengan anonimisasi (inisial atau kode), penyimpanan data yang aman, dan tidak membuka identitas tanpa izin."},
+{t:"pg",q:"Peneliti akan mengamati kajian kitab santri putri di sebuah pesantren. Sikap yang paling sesuai etika penelitian adalah …",o:["Meminta izin pengasuh serta menaati aturan pakaian dan adab pesantren","Datang tanpa izin agar perilaku santri terlihat benar-benar alami","Memotret semua santri dulu, lalu meminta izin setelah selesai","Memakai aturan peneliti sendiri karena peneliti instrumen kunci"],h:"Etika juga berarti menghormati norma sosial, budaya, dan agama setempat.",e:"Selama pengumpulan data, peneliti menghormati norma sosial-budaya-keagamaan: meminta izin pihak berwenang dan menaati adab setempat."},
+{t:"bs",q:"Mengubah sedikit kutipan wawancara agar lebih mendukung teori yang dipakai termasuk pelanggaran kejujuran ilmiah.",a:true,h:"Data harus dilaporkan sesuai yang disampaikan informan.",e:"Kejujuran ilmiah menuntut data dilaporkan apa adanya. Mengubah kutipan berarti memanipulasi data."}
+]},
+{id:"l4",name:"Menara Naskah",kaj:"Bahan Kajian 4 · Penyusunan proposal dan laporan",x:300,y:240,ic:"tower",letter:"N",gem:"#e0a21c",
+intro:"Menara Naskah menyimpan ribuan gulungan. Untuk naik ke puncak, susun proposal dan laporan penelitian kualitatif dengan sistematis.",
+clue:"Huruf keempat! Masuklah ke Gua Analisis. Bawa obor nalar kritismu, karena di sana data harus diolah dan metodologi dinilai.",
+ch:[
+{t:"or",q:"Susun urutan bagian proposal penelitian kualitatif PAI.",items:["Latar belakang masalah","Fokus dan rumusan masalah","Tujuan dan manfaat penelitian","Kajian teori dan penelitian terdahulu","Metode penelitian"],e:"Proposal diawali latar belakang, fokus dan rumusan masalah, tujuan dan manfaat, lalu kajian teori, penelitian terdahulu, dan kerangka berpikir, kemudian rancangan metode."},
+{t:"pg",q:"Bagian proposal yang memuat pendekatan, informan, teknik pengumpulan dan analisis data, serta keabsahan data adalah …",o:["Rancangan metode penelitian","Kajian teori dan kerangka berpikir","Latar belakang masalah","Temuan dan pembahasan"],h:"Bagian ini menjawab “bagaimana penelitian akan dilakukan”.",e:"Rancangan metode memuat pendekatan, informan, teknik pengumpulan dan analisis data, serta keabsahan data."},
+{t:"pg",q:"Di bab pembahasan, cara terbaik menyajikan temuan penelitian kualitatif adalah …",o:["Mengaitkan temuan dengan kerangka teori dan penelitian terdahulu","Menyalin seluruh transkrip wawancara tanpa penafsiran peneliti","Menyajikan tabel frekuensi dan hasil uji statistik saja","Menulis opini peneliti tanpa merujuk data dari lapangan"],h:"Temuan perlu dimaknai, bukan sekadar ditempel.",e:"Temuan disajikan secara deskriptif-naratif, didukung kutipan data, lalu dibahas dengan mengaitkannya pada kerangka teori dan penelitian terdahulu."},
+{t:"bs",q:"Mengutip pendapat ahli tanpa menyebut sumbernya tetap boleh asalkan kalimatnya sudah diparafrasa.",a:false,h:"Parafrasa tetap butuh sitasi.",e:"Parafrasa tetap wajib mencantumkan sumber. Tanpa sitasi termasuk plagiarisme, yang dilarang dalam tata tertib RPS mata kuliah ini."},
+{t:"pg",q:"Simpulan penelitian kualitatif yang baik adalah …",o:["Menjawab fokus dan rumusan masalah secara ringkas berdasarkan temuan","Mengulang seluruh latar belakang masalah dengan kalimat yang baru","Menggeneralisasi temuan ke semua sekolah di seluruh Indonesia","Memuat data baru yang belum dibahas di bagian temuan"],h:"Simpulan menjawab pertanyaan penelitian.",e:"Simpulan menjawab rumusan masalah secara ringkas berdasarkan temuan, lalu diikuti saran atau rekomendasi yang relevan."}
+]},
+{id:"l5",name:"Gua Analisis",kaj:"Bahan Kajian 5 · Kajian kritis dan perangkat lunak analisis",x:105,y:150,ic:"cave",letter:"A",gem:"#8a4fd1",
+intro:"Gua Analisis gelap dan berliku. Nilai kualitas metodologi penelitian orang lain, lalu olah data dengan NVivo, Atlas.ti, atau coding manual.",
+clue:"Huruf kelima! Semua petunjuk terkumpul. Seberangi laut menuju Pulau Harta dan buka petinya!",
+ch:[
+{t:"mt",q:"Pasangkan kriteria keabsahan data Lincoln & Guba dengan teknik yang paling sesuai.",pairs:[["Kredibilitas","Triangulasi dan member checking"],["Transferabilitas","Deskripsi rinci (thick description)"],["Dependabilitas","Audit trail atas seluruh proses penelitian"],["Konfirmabilitas","Jurnal refleksi agar temuan bersumber dari data, bukan bias peneliti"]],e:"Lincoln & Guba: kredibilitas (triangulasi, member checking), transferabilitas (deskripsi rinci), dependabilitas (audit trail), dan konfirmabilitas (refleksivitas dan audit jejak data)."},
+{t:"pg",q:"Sebuah skripsi memakai wawancara dengan 3 informan, lalu menyimpulkan “kegiatan Rohis berpengaruh 45% terhadap akhlak siswa”. Kelemahan metodologis utamanya adalah …",o:["Klaim persentase pengaruh tidak sesuai dengan desain kualitatif","Jumlah informan terlalu banyak untuk teknik wawancara mendalam","Penelitian tentang Rohis tidak boleh memakai teknik wawancara","Judul penelitian terlalu pendek untuk sebuah skripsi sarjana"],h:"Cocokkan klaim kesimpulan dengan desain penelitiannya.",e:"Menilai kesesuaian metodologi berarti memeriksa keselarasan desain, informan, analisis, dan klaim. Persentase pengaruh menuntut desain kuantitatif."},
+{t:"pg",q:"Di NVivo, wadah untuk mengumpulkan potongan teks wawancara yang bermakna sama disebut …",o:["Node (kode)","Memo","Case","Query"],h:"Istilah ini mewakili sebuah kode, kategori, atau konsep.",e:"Node mewakili kode, kategori, atau konsep; teks bermakna serupa dikodekan ke node yang sama. Memo untuk catatan analitis, case untuk unit seperti informan."},
+{t:"or",q:"Susun langkah mengolah transkrip wawancara dengan NVivo atau Atlas.ti.",items:["Impor transkrip wawancara","Beri kode pada potongan teks","Kelompokkan kode menjadi kategori dan tema","Tafsirkan tema dan tarik kesimpulan"],e:"Transkrip diimpor, dikodekan (open coding), kode dikelompokkan menjadi kategori dan tema, lalu ditafsirkan peneliti untuk menarik kesimpulan."},
+{t:"bs",q:"Perangkat lunak seperti NVivo atau Atlas.ti otomatis menghasilkan kesimpulan penelitian tanpa perlu penafsiran peneliti.",a:false,h:"Siapa instrumen kunci penelitian kualitatif?",e:"Software membantu mengelola, mengkode, dan menelusuri data. Penafsiran tetap dilakukan peneliti, dan coding manual pun tetap sah."}
+]}
+];
+const FIN={id:"fin",name:"Pulau Harta",x:290,y:70,word:"MAKNA",q:"Kata sandi peti harta: menurut Sugiyono, hasil penelitian kualitatif lebih menekankan ___ daripada generalisasi.",h:"Hati-hati, huruf yang sama bisa membentuk kata lain. Pilih kata yang menjawab teka-teki.",e:"Penelitian kualitatif menekankan makna, yaitu pemahaman mendalam atas fenomena dari sudut pandang partisipan, bukan generalisasi statistik."};
+
+const TOTAL=LOC.length?LOC.reduce((s,l)=>s+l.ch.length,0)+1:1;
+const STORY=["Halo, {n}! Aku Kak Beo, pemandu petualanganmu di Pulau Metodologi.","Pulau ini penuh hutan, danau, dan gunung bersalju. Ada lima lokasi, masing-masing menyimpan harta dari satu bahan kajian Metodologi Penelitian PAI.","Ikuti sorotan cahaya emas. Dekati tanda X merah, lalu tekan Gali untuk membuka tantangannya. Setiap lokasi yang tuntas memberimu permata dan satu huruf petunjuk.","Lima huruf itu kunci peti harta karun di Puncak Harta, di kaki pegunungan bersalju. Siap? Bismillah!"];
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const IC={
+on:'<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+off:'<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm18.7 1.7-1.4-1.4-2.3 2.3-2.3-2.3-1.4 1.4 2.3 2.3-2.3 2.3 1.4 1.4 2.3-2.3 2.3 2.3 1.4-1.4-2.3-2.3z"/></svg>',
+check:'<svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.8 1.8 6 6L21 8.3l-1.8-1.8z"/></svg>',
+x:'<svg viewBox="0 0 24 24"><path d="M18.4 4.2 12 10.6 5.6 4.2 4.2 5.6 10.6 12l-6.4 6.4 1.4 1.4 6.4-6.4 6.4 6.4 1.4-1.4-6.4-6.4 6.4-6.4z"/></svg>'
+};
+const gemSvg=(c,on)=>`<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z" fill="${on?c:"#e3d2a8"}" stroke="${on?"#3a2614":"#b99a66"}" stroke-width="1.6" stroke-linejoin="round"/>${on?'<path d="M6 3l3 6h6l3-6M2 9h20M9 9l3 13 3-13" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/>':""}</svg>`;
+const PARROT='<svg viewBox="0 0 70 70"><rect width="70" height="70" fill="#bfe3e8"/><path d="M18 70c0-20 6-34 20-38 14 4 18 18 16 38z" fill="#2e9e5b"/><path d="M30 70c2-14 6-24 14-28 6 8 6 18 4 28z" fill="#e0a21c"/><circle cx="38" cy="26" r="14" fill="#2e9e5b"/><circle cx="42" cy="22" r="6" fill="#fff"/><circle cx="43" cy="22" r="3" fill="#3a2614"/><path d="M50 25c8 0 10 6 6 11-2-4-5-5-8-5z" fill="#f2b632" stroke="#3a2614" stroke-width="1.5"/><path d="M28 14c-2-6 2-10 6-10-1 3 0 6 2 8z" fill="#d4473b"/></svg>';
+
+/* ---------- state ---------- */
+let S={p:null,unl:0,done:{},cr:{},coins:0,gems:[],clues:[],fin:false,mute:false,seen:{},px:0,pz:32,yaw:Math.PI};
+let mode="title",CUR=null,AC=null,toastT=0,story=0,FT=null;
+const iid=(l,i)=>l.id+"."+i;
+const locDone=l=>l.ch.every((_,i)=>S.done[iid(l,i)]);
+const busy=()=>!!document.querySelector(".ov.on");
+
+function snd(k){if(S.mute)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const seq={ok:[[660,.08],[990,.16]],bad:[[196,.24,"sawtooth"]],tap:[[540,.05]],coin:[[988,.06],[1319,.14]],dig:[[150,.07,"square"],[130,.07,"square"]],win:[[523,.1],[659,.1],[784,.1],[1047,.32]],jump:[[330,.05],[495,.08]],step:[[160,.025,"square"]]}[k];let t=AC.currentTime;for(const [f,d,w] of seq){const o=AC.createOscillator(),g=AC.createGain();o.type=w||"triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(k==="step"?.02:.15,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.03);t+=d*.9}}catch(e){}}
+function updMute(){document.querySelectorAll(".mute").forEach(b=>{b.innerHTML=S.mute?IC.off:IC.on;b.setAttribute("aria-label",S.mute?"Nyalakan suara":"Matikan suara")})}
+document.querySelectorAll(".mute").forEach(b=>b.addEventListener("click",()=>{S.mute=!S.mute;updMute();snd("tap")}));
+function toast(t,ms){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("on"),ms||2600)}
+function ov(id,on){$("#"+id).classList.toggle("on",on)}
+function hud(){$("#hCoin").textContent=S.coins;$("#hGems").innerHTML=LOC.map((l,i)=>gemSvg(l.gem,S.gems.includes(i))).join("");$("#hClues").innerHTML=LOC.map((l,i)=>`<span class="${S.clues.includes(i)?"on":""}">${S.clues.includes(i)?l.letter:""}</span>`).join("")}
+function burst(n){if(reduce)return;const r=$("#panel").getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+Math.min(r.height/3,120);for(let i=0;i<n;i++){const c=document.createElement("i");c.className="cf";c.style.left=cx+"px";c.style.top=cy+"px";c.style.setProperty("--dx",(Math.random()*280-140)+"px");c.style.setProperty("--dy",(Math.random()*-220-30)+"px");c.style.animationDelay=(Math.random()*.25)+"s";document.body.appendChild(c);setTimeout(()=>c.remove(),1400)}}
+
+/* ---------- world data ---------- */
+const SZ=64,N=80,CELL=SZ*2/N,WL=-0.5;
+const LAKE={x:-31,z:20,r:12};
+const ZONES=[{x:-14,z:19,la:Math.PI},{x:14,z:12,la:0},{x:-16,z:-6,la:Math.PI},{x:18,z:-12,la:0},{x:-10,z:-26,la:-Math.PI/2}];
+const SUM={x:12,z:-37};
+const SPAWN={x:0,z:32};
+const PATH=[SPAWN,...ZONES,SUM];
+function rnd(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return()=>(s=s*16807%2147483647)/2147483647}
+const hash=(x,z)=>{const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s)};
+function vnoise(x,z){const xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi,u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);const a=hash(xi,zi),b=hash(xi+1,zi),c=hash(xi,zi+1),d=hash(xi+1,zi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+const fbm=(x,z)=>vnoise(x,z)*.6+vnoise(x*2.1,z*2.1)*.28+vnoise(x*4.3,z*4.3)*.12;
+const sm=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t)};
+function segDist(px,pz,a,b){const vx=b.x-a.x,vz=b.z-a.z,l=vx*vx+vz*vz;let t=((px-a.x)*vx+(pz-a.z)*vz)/l;t=Math.max(0,Math.min(1,t));return Math.hypot(px-a.x-vx*t,pz-a.z-vz*t)}
+function pathDist(x,z){let d=1e9;for(let i=0;i<PATH.length-1;i++)d=Math.min(d,segDist(x,z,PATH[i],PATH[i+1]));return d}
+function rawH(x,z){const r=Math.hypot(x,z);let h=1.1*Math.sin(x*.11+1)*Math.cos(z*.09)+2.2*fbm(x*.05+3,z*.05+9)-.6;
+h+=sm(33,58,r)*(16+20*fbm(x*.045+7,z*.045+3));h+=sm(26,-10,z)*sm(30,58,r)*10;
+const dl=Math.hypot(x-LAKE.x,z-LAKE.z);h-=4.6*sm(LAKE.r,LAKE.r*.35,dl);
+const ds=Math.hypot(x-SUM.x,z-SUM.z);h+=9.5*sm(15,3,ds);return h}
+function flatH(x,z){let h=rawH(x,z);for(const c of [...ZONES,SUM,SPAWN]){const d=Math.hypot(x-c.x,z-c.z),w=sm(8.5,4.5,d);if(w>0){const hz=c===SUM?rawH(c.x,c.z):Math.max(rawH(c.x,c.z),.3);h=h*(1-w)+hz*w}}return h}
+const HG=new Float32Array((N+1)*(N+1));
+for(let j=0;j<=N;j++)for(let i=0;i<=N;i++)HG[j*(N+1)+i]=flatH(-SZ+i*CELL,-SZ+j*CELL);
+function groundY(x,z){const fx=(x+SZ)/CELL,fz=(z+SZ)/CELL;let i=Math.floor(fx),j=Math.floor(fz);if(i<0)i=0;if(j<0)j=0;if(i>N-1)i=N-1;if(j>N-1)j=N-1;const u=Math.min(1,Math.max(0,fx-i)),v=Math.min(1,Math.max(0,fz-j));const h00=HG[j*(N+1)+i],h10=HG[j*(N+1)+i+1],h01=HG[(j+1)*(N+1)+i],h11=HG[(j+1)*(N+1)+i+1];return u+v<1?h00+(h10-h00)*u+(h01-h00)*v:h11+(h01-h11)*(1-u)+(h10-h11)*(1-v)}
+
+/* ---------- geometry builder ---------- */
+const V=[];const hex=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
+const jit=(c,k,r)=>{const f=1+(r()-.5)*k;return [c[0]*f,c[1]*f,c[2]*f]};
+function tri(a,b,c,col,ref,out){const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;
+const cx=(a[0]+b[0]+c[0])/3-ref[0],cy=(a[1]+b[1]+c[1])/3-ref[1],cz=(a[2]+b[2]+c[2])/3-ref[2];if(nx*cx+ny*cy+nz*cz<0){nx=-nx;ny=-ny;nz=-nz}const o=out||V;for(const p of [a,b,c])o.push(p[0],p[1],p[2],nx,ny,nz,col[0],col[1],col[2])}
+function box(cx,cy,cz,sx,sy,sz,col,ry,out){ry=ry||0;const c=Math.cos(ry),s=Math.sin(ry),hx=sx/2,hy=sy/2,hz=sz/2;const P=(x,y,z)=>[cx+x*c+z*s,cy+y,cz-x*s+z*c];
+const p=[P(-hx,-hy,-hz),P(hx,-hy,-hz),P(hx,hy,-hz),P(-hx,hy,-hz),P(-hx,-hy,hz),P(hx,-hy,hz),P(hx,hy,hz),P(-hx,hy,hz)],r=[cx,cy,cz];
+const F=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[0,3,7,4],[1,2,6,5]];for(const f of F){tri(p[f[0]],p[f[1]],p[f[2]],col,r,out);tri(p[f[0]],p[f[2]],p[f[3]],col,r,out)}}
+function cone(cx,by,cz,rad,h,n,col,rot,out){rot=rot||0;const ap=[cx,by+h,cz],r=[cx,by+h*.3,cz];for(let i=0;i<n;i++){const a1=rot+i/n*Math.PI*2,a2=rot+(i+1)/n*Math.PI*2;tri([cx+Math.cos(a1)*rad,by,cz+Math.sin(a1)*rad],[cx+Math.cos(a2)*rad,by,cz+Math.sin(a2)*rad],ap,col,r,out);tri([cx+Math.cos(a1)*rad,by,cz+Math.sin(a1)*rad],[cx+Math.cos(a2)*rad,by,cz+Math.sin(a2)*rad],[cx,by,cz],col,ap,out)}}
+const COL=[];const addCol=(x,z,r)=>COL.push({x,z,r});const OCC=[];
+
+/* terrain */
+(function(){const r=rnd(42),G=[hex("#62b14a"),hex("#55a43f"),hex("#6fbd52"),hex("#4c9a3b")],DIRT=hex("#c09060"),SAND=hex("#dcc68c"),ROCK=hex("#8e8a82"),ROCK2=hex("#7b776f"),SNOW=hex("#f3f6f8"),CLR=hex("#86c763");
+for(let j=0;j<N;j++)for(let i=0;i<N;i++){const x0=-SZ+i*CELL,z0=-SZ+j*CELL,x1=x0+CELL,z1=z0+CELL;const a=[x0,HG[j*(N+1)+i],z0],b=[x1,HG[j*(N+1)+i+1],z0],c=[x0,HG[(j+1)*(N+1)+i],z1],d=[x1,HG[(j+1)*(N+1)+i+1],z1];
+for(const T of [[a,b,c],[b,d,c]]){const cx=(T[0][0]+T[1][0]+T[2][0])/3,cz=(T[0][2]+T[1][2]+T[2][2])/3,cy=(T[0][1]+T[1][1]+T[2][1])/3;
+const ux=T[1][0]-T[0][0],uy=T[1][1]-T[0][1],uz=T[1][2]-T[0][2],vx=T[2][0]-T[0][0],vy=T[2][1]-T[0][1],vz=T[2][2]-T[0][2];let ny=uz*vx-ux*vz;const l=Math.hypot(uy*vz-uz*vy,ny,ux*vy-uy*vx);ny=Math.abs(ny/l);
+let col;const pd=pathDist(cx,cz),zd=Math.min(...ZONES.map(z=>Math.hypot(cx-z.x,cz-z.z)),Math.hypot(cx-SUM.x,cz-SUM.z));
+if(cy<WL+.35)col=SAND;else if(cy>20.5+fbm(cx*.2,cz*.2)*3)col=SNOW;else if(ny<.72||cy>13)col=fbm(cx*.3,cz*.3)>.5?ROCK:ROCK2;else if(pd<1.5)col=DIRT;else if(zd<6.5)col=CLR;else col=G[Math.floor(fbm(cx*.13,cz*.13)*4.2)%4];
+tri(T[0],T[1],T[2],jit(col,.07,r),[cx,cy-100,cz])}}})();
+
+/* forest, rocks, flowers, clouds */
+(function(){const r=rnd(7);let n=0,tries=0;const TRUNK=hex("#7a4a24"),PINE=[hex("#2f7d43"),hex("#2a6f3c"),hex("#357f47")],LEAF=[hex("#3f9a48"),hex("#56b04f"),hex("#4aa547")];
+const ok=(x,z,gap)=>{const g=groundY(x,z);if(g<WL+.6||g>15)return false;if(Math.hypot(x,z)>51)return false;if(pathDist(x,z)<3.8)return false;for(const c of [...ZONES,SUM,SPAWN])if(Math.hypot(x-c.x,z-c.z)<(c===SPAWN?7:10.5))return false;for(const c of COL)if(Math.hypot(x-c.x,z-c.z)<gap+c.r)return false;return true};
+while(n<330&&tries<9000){tries++;const x=(r()*2-1)*52,z=(r()*2-1)*52;if(!ok(x,z,1.4))continue;const g=groundY(x,z);n++;const pine=g>4||fbm(x*.07,z*.07)>.55;const s=.8+r()*.6;
+box(x,g+.8*s,z,.45*s,1.6*s,.45*s,TRUNK,r()*3);
+if(pine){const pc=PINE[Math.floor(r()*3)];cone(x,g+1.1*s,z,1.7*s,2.4*s,6,pc,r()*3);cone(x,g+2.4*s,z,1.3*s,2.1*s,6,jit(pc,.1,r),r()*3);cone(x,g+3.6*s,z,.9*s,1.7*s,6,jit(pc,.1,r),r()*3)}
+else{const lc=LEAF[Math.floor(r()*3)];box(x,g+2.4*s,z,2.3*s,1.9*s,2.3*s,lc,r()*3);box(x,g+3.6*s,z,1.5*s,1*s,1.5*s,jit(lc,.12,r),r()*3)}addCol(x,z,.45*s);OCC.push({x,z,r:(pine?1.7:1.65)*s,top:g+(pine?5.3:4.1)*s})}
+const RK=hex("#9a958c");for(let k=0;k<70;k++){const x=(r()*2-1)*54,z=(r()*2-1)*54,g=groundY(x,z);if(g<WL+.4||pathDist(x,z)<2.2)continue;let near=false;for(const c of [...ZONES,SUM,SPAWN])if(Math.hypot(x-c.x,z-c.z)<9)near=true;if(near)continue;const s=.6+r()*1.6;box(x,g+s*.35,z,s*1.3,s*.9,s,jit(RK,.15,r),r()*3);if(Math.hypot(x,z)<50&&s>1)addCol(x,z,s*.6)}
+const FL=[hex("#e5484d"),hex("#ffd23c"),hex("#ffffff"),hex("#c06cd6")];for(let k=0;k<200;k++){const x=(r()*2-1)*46,z=(r()*2-1)*46,g=groundY(x,z);if(g<WL+.6||g>8||pathDist(x,z)<1.6)continue;box(x,g+.14,z,.22,.22,.22,FL[k%4],r());box(x,g+.05,z,.08,.12,.08,hex("#3f9a48"))}
+const CL=hex("#ffffff");for(let k=0;k<16;k++){const x=(r()*2-1)*70,z=(r()*2-1)*70,y=40+r()*14,s=4+r()*6;box(x,y,z,s*2.2,s*.6,s*1.4,CL);box(x+s*.6,y+s*.4,z,s*1.2,s*.6,s,CL)}})();
+
+/* landmarks */
+const LMK=[];
+(function(){const W=hex("#9a6a3a"),W2=hex("#7a4a24"),ST=hex("#e8e0cc"),ST2=hex("#c9bd9f"),RED=hex("#c0392b"),TAN=hex("#d8c08f"),DARK=hex("#2a1d12"),CRY=hex("#a98bd8"),WHITE=hex("#fffaf0"),GOLD=hex("#f2b632"),GRN=hex("#2e9e5b");
+ZONES.forEach((z,i)=>{const lx=z.x+Math.cos(z.la)*6.5,lz=z.z+Math.sin(z.la)*6.5,g=groundY(lx,lz);LMK.push({x:lx,z:lz,y:g});
+if(i===0){const dy=WL+.45;box(z.x-6.5,dy,z.z,9,.25,2.2,W,0);for(const dx of [-2,-5,-8,-10.6])for(const dz of [-.9,.9])box(z.x+dx,dy-1,z.z+dz,.25,2.2,.25,W2);
+const bx=z.x-12.5,bz=z.z+3.2;box(bx,WL+.25,bz,3.6,.8,1.6,hex("#9a5b2a"),.3);box(bx,WL+2,bz,.18,3.2,.18,W2,.3);box(bx+.2,WL+2.2,bz-.1,.08,2,1.5,WHITE,.3);
+box(z.x-1.2,groundY(z.x-1.2,z.z-3)+1,z.z-3,.2,2,.2,W2);box(z.x-1.2,groundY(z.x-1.2,z.z-3)+1.9,z.z-3,1.6,.6,.12,TAN)}
+if(i===1){box(lx,g+2,lz,1.4,4,1.4,W2);box(lx,g+5,lz,5.5,3.5,5.5,hex("#3a8f44"));box(lx,g+7.3,lz,3.6,1.6,3.6,hex("#4aa547"));addCol(lx,lz,1.2);OCC.push({x:lx,z:lz,r:3.2,top:g+8.2});
+const sx=z.x+1.5,sz=z.z-4.5,sg=groundY(sx,sz);box(sx,sg+1.1,sz,.22,2.2,.22,W2);box(sx+.5,sg+1.8,sz,1.3,.4,.1,TAN,0);box(sx-.4,sg+1.3,sz,1.2,.4,.1,TAN,.5);addCol(sx,sz,.3);
+box(z.x-1,groundY(z.x-1,z.z+8.5)+.3,z.z+8.5,4,.6,.7,W2,.7)}
+if(i===2){box(lx,g+.3,lz,6.4,.6,5,ST2);for(const px of [-2.6,0,2.6])for(const pz of [-1.9,1.9])box(lx+px,g+2.1,lz+pz,.6,3,.6,ST);box(lx,g+3.8,lz,6.8,.5,5.4,ST2);cone(lx,g+4.05,lz,4.4,2,4,hex("#b8a27a"),Math.PI/4);addCol(lx,lz,3.7);OCC.push({x:lx,z:lz,r:3.6,top:g+6.2})}
+if(i===3){box(lx,g+4,lz,3.2,8,3.2,TAN);box(lx,g+8.3,lz,3.8,.7,3.8,W);cone(lx,g+8.6,lz,2.9,3.2,4,RED,Math.PI/4);for(const yy of [2.5,5,7])box(lx-1.62,g+yy,lz,.06,.9,.6,DARK);box(lx-1.62,g+.9,lz,.06,1.8,1,W2);addCol(lx,lz,2.3);OCC.push({x:lx,z:lz,r:2.2,top:g+11.8})}
+if(i===4){const RK=hex("#8c857a");box(lx,g+2,lz,9,4.5,5,RK);box(lx-2,g+4.8,lz+.5,6,2.5,4,hex("#7d766b"));box(lx+2.5,g+3.8,lz-.6,4,3,4,hex("#958e82"));box(lx,g+1.4,lz+2.52,2.6,2.8,.1,DARK);
+for(const [cx,cz] of [[-3.6,3],[3.8,2.8],[-1.5,3.4]])cone(lx+cx,g,lz+cz,.45,1.4,5,CRY);addCol(lx,lz,4.2);OCC.push({x:lx,z:lz,r:4.6,top:g+6.3})}});
+const s=SUM,g=groundY(s.x,s.z);for(let k=0;k<8;k++){const a=k/8*Math.PI*2;box(s.x+Math.cos(a)*4.2,g+.35,s.z+Math.sin(a)*4.2,.9,.7,.8,hex("#9a958c"),a)}
+for(const [fx,fz] of [[-2.6,-1.6],[2.6,-1.6]]){box(s.x+fx,g+2,s.z+fz,.15,4,.15,W2);box(s.x+fx+.7,g+3.5,s.z+fz,1.3,.8,.05,RED)}})();
+const STATIC=new Float32Array(V);V.length=0;
+
+/* unit meshes */
+const CUBE=[];box(0,0,0,1,1,1,[1,1,1],0,CUBE);
+const OCTA=[];(function(){const P=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];const F=[[0,2,4],[4,2,1],[1,2,5],[5,2,0],[0,4,3],[4,1,3],[1,5,3],[5,0,3]];for(const f of F)tri(P[f[0]],P[f[1]],P[f[2]],[1,1,1],[0,0,0],OCTA)})();
+const DISC=[];for(let i=0;i<12;i++){const a1=i/12*Math.PI*2,a2=(i+1)/12*Math.PI*2;tri([0,0,0],[Math.cos(a1),0,Math.sin(a1)],[Math.cos(a2),0,Math.sin(a2)],[1,1,1],[0,-1,0],DISC)}
+const WATER=[];(function(){const x0=LAKE.x-LAKE.r-3,x1=LAKE.x+LAKE.r+1,z0=LAKE.z-LAKE.r-3,z1=LAKE.z+LAKE.r+3;tri([x0,WL,z0],[x1,WL,z0],[x1,WL,z1],[1,1,1],[0,-5,0],WATER);tri([x0,WL,z0],[x1,WL,z1],[x0,WL,z1],[1,1,1],[0,-5,0],WATER)})();
+
+/* spots */
+const SPOTS=[];LOC.forEach((l,i)=>{const z=ZONES[i],n=l.ch.length;for(let k=0;k<n;k++){const a=z.la+(55+k*(250/(n-1)))*Math.PI/180;let x=z.x+Math.cos(a)*5,zz=z.z+Math.sin(a)*5;if(groundY(x,zz)<WL+.4){x=z.x+Math.cos(a)*3;zz=z.z+Math.sin(a)*3}SPOTS.push({li:i,k,x,z:zz,y:groundY(x,zz)})}});
+const FINAL={x:SUM.x,z:SUM.z+.5,y:groundY(SUM.x,SUM.z+.5)};addCol(FINAL.x,FINAL.z,.9);
+
+/* ---------- WebGL ---------- */
+const cv=$("#gl");const gl=cv.getContext("webgl",{antialias:true,alpha:true,premultipliedAlpha:false})||cv.getContext("experimental-webgl");
+if(!gl){$("#nogl").hidden=false}
+const VS=`attribute vec3 p;attribute vec3 n;attribute vec3 c;uniform mat4 uVP;uniform mat4 uM;uniform vec3 uTint;uniform vec3 uSun;uniform vec3 uCam;uniform float uLit;uniform vec2 uFogD;varying vec3 vC;varying float vF;
+void main(){vec4 w=uM*vec4(p,1.);vec3 nn=normalize((uM*vec4(n,0.)).xyz);float d=max(dot(nn,uSun),0.);float hemi=.5+.5*nn.y;vec3 col=c*uTint;vec3 lit=col*(.34+.24*hemi+.62*d);vC=mix(col,lit,uLit);float dist=length(w.xyz-uCam);vF=clamp((dist-uFogD.x)/(uFogD.y-uFogD.x),0.,1.);gl_Position=uVP*w;}`;
+const FS=`precision mediump float;uniform vec3 uFog;uniform float uA;varying vec3 vC;varying float vF;void main(){gl_FragColor=vec4(mix(vC,uFog,vF),uA);}`;
+let prog,U={},BUF={};
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o}
+function mkBuf(arr){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr instanceof Float32Array?arr:new Float32Array(arr),gl.STATIC_DRAW);return{b,n:arr.length/9}}
+if(gl){prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));gl.bindAttribLocation(prog,0,"p");gl.bindAttribLocation(prog,1,"n");gl.bindAttribLocation(prog,2,"c");gl.linkProgram(prog);gl.useProgram(prog);
+for(const k of ["uVP","uM","uTint","uSun","uCam","uLit","uFogD","uFog","uA"])U[k]=gl.getUniformLocation(prog,k);
+BUF.stat=mkBuf(STATIC);BUF.cube=mkBuf(CUBE);BUF.octa=mkBuf(OCTA);BUF.disc=mkBuf(DISC);BUF.water=mkBuf(WATER);
+gl.enableVertexAttribArray(0);gl.enableVertexAttribArray(1);gl.enableVertexAttribArray(2);gl.enable(gl.DEPTH_TEST);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA)}
+let curB=null;function bind(o){if(curB===o)return;curB=o;gl.bindBuffer(gl.ARRAY_BUFFER,o.b);gl.vertexAttribPointer(0,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(1,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(2,3,gl.FLOAT,false,36,24)}
+
+/* math */
+const I4=()=>{const m=new Float32Array(16);m[0]=m[5]=m[10]=m[15]=1;return m};
+function mul(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++){o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3]}return o}
+const T=(x,y,z)=>{const m=I4();m[12]=x;m[13]=y;m[14]=z;return m};
+const Sc=(x,y,z)=>{const m=I4();m[0]=x;m[5]=y;m[10]=z;return m};
+const RY=a=>{const m=I4(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m};
+const RX=a=>{const m=I4(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m};
+const RZ=a=>{const m=I4(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m};
+function persp(fy,as,n,f){const m=new Float32Array(16),t=1/Math.tan(fy/2);m[0]=t/as;m[5]=t;m[10]=(f+n)/(n-f);m[11]=-1;m[14]=2*f*n/(n-f);return m}
+function lookAt(e,t){let zx=e[0]-t[0],zy=e[1]-t[1],zz=e[2]-t[2];let l=Math.hypot(zx,zy,zz);zx/=l;zy/=l;zz/=l;let xx=zz,xy=0,xz=-zx;l=Math.hypot(xx,xz)||1;xx/=l;xz/=l;const yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;const m=I4();m[0]=xx;m[1]=yx;m[2]=zx;m[4]=xy;m[5]=yy;m[6]=zy;m[8]=xz;m[9]=yz;m[10]=zz;m[12]=-(xx*e[0]+xy*e[1]+xz*e[2]);m[13]=-(yx*e[0]+yy*e[1]+yz*e[2]);m[14]=-(zx*e[0]+zy*e[1]+zz*e[2]);return m}
+const chain=(...ms)=>ms.reduce((a,b)=>mul(a,b));
+function draw(o,M,tint,a,lit){bind(o);gl.uniformMatrix4fv(U.uM,false,M);gl.uniform3fv(U.uTint,tint);gl.uniform1f(U.uA,a==null?1:a);gl.uniform1f(U.uLit,lit==null?1:lit);gl.drawArrays(gl.TRIANGLES,0,o.n)}
+const cube=(M,col,a,lit)=>draw(BUF.cube,M,col,a,lit);
+
+/* ---------- player ---------- */
+const pl={x:SPAWN.x,z:SPAWN.z,y:groundY(SPAWN.x,SPAWN.z),vy:0,yaw:Math.PI,ground:true,walk:0,speed:0};
+let camYaw=0,camPitch=.5,camDist=12.5,curDist=12.5,orbit=0;
+const keys=new Set();let joy={x:0,y:0,id:null};
+const C={skin:hex("#f5cd30"),shirt:hex("#1f9d8f"),pants:hex("#2c5aa0"),hat:hex("#8a5a2b"),hat2:hex("#6b4420"),black:hex("#1b1b1b"),belt:hex("#5a3a1a"),bag:hex("#c0392b")};
+function drawPlayer(){const root=chain(T(pl.x,pl.y,pl.z),RY(pl.yaw));const sw=Math.sin(pl.walk)*.9*Math.min(1,pl.speed),air=!pl.ground;const legA=air?.5:sw,armA=air?-2.6:-sw;
+const part=(px,py,pz,ang,ox,oy,oz,sx,sy,sz,col)=>cube(chain(root,T(px,py,pz),RX(ang),T(ox,oy,oz),Sc(sx,sy,sz)),col);
+part(-.25,1,0,legA,0,-.5,0,.48,1,.5,C.pants);part(.25,1,0,-legA,0,-.5,0,.48,1,.5,C.pants);
+cube(chain(root,T(0,1.5,0),Sc(1,1,.52)),C.shirt);cube(chain(root,T(0,1.08,0),Sc(1.02,.14,.54)),C.belt);cube(chain(root,T(0,1.5,-.34),Sc(.7,.75,.2)),C.bag);
+part(-.74,1.95,0,armA,0,-.45,0,.46,1,.48,C.skin);part(.74,1.95,0,air?-2.6:sw,0,-.45,0,.46,1,.48,C.skin);
+cube(chain(root,T(0,2.36,0),Sc(.66,.66,.66)),C.skin);cube(chain(root,T(-.14,2.42,.335),Sc(.09,.14,.02)),C.black,1,0);cube(chain(root,T(.14,2.42,.335),Sc(.09,.14,.02)),C.black,1,0);cube(chain(root,T(0,2.24,.335),Sc(.26,.05,.02)),C.black,1,0);
+cube(chain(root,T(0,2.72,0),Sc(1.05,.08,1.05)),C.hat);cube(chain(root,T(0,2.88,0),Sc(.66,.3,.66)),C.hat2)}
+
+/* ---------- spots draw ---------- */
+const XRED=hex("#d43a2f"),MOUND=hex("#a7774a"),GOLDC=hex("#f2b632"),GREY=hex("#9aa0a6"),CHEST=hex("#9a5b2a"),CHEST2=hex("#c07a3a"),JADE=hex("#23917f");
+let fx=[];
+function chestAt(x,y,z,yaw,open,scale){const s=scale||1,R=chain(T(x,y,z),RY(yaw),Sc(s,s,s));cube(chain(R,T(0,.35,0),Sc(1.2,.7,.8)),CHEST);cube(chain(R,T(0,.3,.41),Sc(.22,.26,.04)),GOLDC);
+if(open){cube(chain(R,T(0,.72,-.4),RX(-1.1),T(0,0,.4),Sc(1.24,.14,.82)),CHEST2);cube(chain(R,T(0,.72,0),Sc(1.02,.1,.62)),GOLDC,1,.5)}else{cube(chain(R,T(0,.8,0),Sc(1.24,.26,.84)),CHEST2)}}
+function drawSpots(t){for(const s of SPOTS){const dd=Math.hypot(s.x-pl.x,s.z-pl.z);if(dd>75)continue;const l=LOC[s.li],done=S.done[iid(l,s.k)],act=s.li===S.unl||(s.li<S.unl&&!done);
+if(done){chestAt(s.x,s.y,s.z,s.k*1.3,true,.8);continue}
+cube(chain(T(s.x,s.y+.06,s.z),Sc(1.5,.12,1.5)),MOUND);cube(chain(T(s.x,s.y+.14,s.z),RY(Math.PI/4),Sc(1.7,.06,.32)),act?XRED:GREY,1,.7);cube(chain(T(s.x,s.y+.14,s.z),RY(-Math.PI/4),Sc(1.7,.06,.32)),act?XRED:GREY,1,.7);
+const bob=Math.sin(t*2.4+s.k)*.18;draw(BUF.octa,chain(T(s.x,s.y+2.1+bob,s.z),RY(t*1.6+s.k),Sc(.32,.45,.32)),act?GOLDC:GREY,1,act?.35:1)}
+const g=FINAL;chestAt(g.x,g.y,g.z,Math.PI,S.fin,1.6);if(!S.fin&&S.unl>=LOC.length){draw(BUF.octa,chain(T(g.x,g.y+3.6+Math.sin(t*2)*.2,g.z),RY(t*1.4),Sc(.5,.7,.5)),GOLDC,1,.35)}
+for(const p of fx){cube(chain(T(p.x,p.y,p.z),RY(p.r),Sc(.22,.22,.08)),GOLDC,1,.5)}}
+
+/* ---------- camera / render ---------- */
+let VP=I4(),camPos=[0,10,40],W=1,H=1;
+function resize(){const d=Math.min(window.devicePixelRatio||1,1.6);const w=Math.floor(cv.clientWidth*d),h=Math.floor(cv.clientHeight*d);if(w!==cv.width||h!==cv.height){cv.width=w;cv.height=h}W=cv.clientWidth;H=cv.clientHeight}
+const SUN=(()=>{const v=[.45,.8,.35],l=Math.hypot(...v);return v.map(x=>x/l)})();const FOG=hex("#cfe8f0");
+function activeTarget(){if(S.unl>=LOC.length)return{x:FINAL.x,z:FINAL.z,name:S.fin?"Harta sudah ditemukan":"Puncak Harta"};const z=ZONES[S.unl];return{x:z.x,z:z.z,name:LOC[S.unl].name}}
+function render(t){if(!gl)return;resize();gl.viewport(0,0,cv.width,cv.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+let tx,ty,tz;if(mode==="title"){orbit+=.0016;tx=0;ty=4;tz=0;camPos=[Math.sin(orbit)*48,26,Math.cos(orbit)*48]}else{tx=pl.x;ty=pl.y+1.9;tz=pl.z;const cp=Math.cos(camPitch),dx=Math.sin(camYaw)*cp,dy=Math.sin(camPitch),dz=Math.cos(camYaw)*cp;let D=camDist;const near=OCC.filter(o=>Math.hypot(o.x-tx,o.z-tz)<camDist+o.r+1);for(let k=1;k<=16;k++){const f=camDist*k/16,px=tx+dx*f,py=ty+dy*f,pz=tz+dz*f;let hitc=py<groundY(px,pz)+.4;if(!hitc)for(const o of near){if(py<o.top+.3&&Math.hypot(px-o.x,pz-o.z)<o.r+.35){hitc=true;break}}if(hitc){D=Math.max(3.8,camDist*(k-1)/16-.3);break}}curDist=D<curDist?D:curDist+(D-curDist)*.06;camPos=[tx+dx*curDist,ty+dy*curDist,tz+dz*curDist];const gy=groundY(camPos[0],camPos[2])+.9;if(camPos[1]<gy)camPos[1]=gy}
+const P=persp(W/H<.8?1.2:.95,W/H,.3,260),Vw=lookAt(camPos,[tx,ty,tz]);VP=mul(P,Vw);
+gl.useProgram(prog);gl.uniformMatrix4fv(U.uVP,false,VP);gl.uniform3fv(U.uSun,SUN);gl.uniform3fv(U.uCam,camPos);gl.uniform3fv(U.uFog,FOG);gl.uniform2f(U.uFogD,mode==="title"?60:38,mode==="title"?190:150);
+gl.disable(gl.BLEND);gl.depthMask(true);draw(BUF.stat,I4(),[1,1,1]);drawSpots(t);drawPlayer();
+gl.enable(gl.BLEND);gl.depthMask(false);
+draw(BUF.disc,chain(T(pl.x,groundY(pl.x,pl.z)+.05,pl.z),Sc(.9,1,.9)),[0,0,0],.28,0);
+draw(BUF.water,I4(),hex("#3a9fd6"),.72,.8);
+const tg=activeTarget();if(!S.fin&&mode!=="title"){const gy=groundY(tg.x,tg.z);cube(chain(T(tg.x,gy+30,tg.z),RY(t*.5),Sc(1.4,60,1.4)),[1,.86,.4],.22+.06*Math.sin(t*3),0)}
+gl.depthMask(true);gl.disable(gl.BLEND);labels()}
+function proj(x,y,z){const cx=VP[0]*x+VP[4]*y+VP[8]*z+VP[12],cy=VP[1]*x+VP[5]*y+VP[9]*z+VP[13],cw=VP[3]*x+VP[7]*y+VP[11]*z+VP[15];if(cw<=.1)return null;return{x:(cx/cw*.5+.5)*W,y:(1-(cy/cw*.5+.5))*H,w:cw}}
+const LB=[];(function(){const box=$("#labels");[...ZONES.map((z,i)=>({x:z.x,z:z.z,i})),{x:FINAL.x,z:FINAL.z,i:5}].forEach(o=>{const d=document.createElement("div");d.className="lbl";box.appendChild(d);LB.push({...o,el:d,y:groundY(o.x,o.z)})})})();
+function labels(){for(const L of LB){if(mode==="title"){L.el.style.display="none";continue}const d=Math.hypot(L.x-pl.x,L.z-pl.z);const p=proj(L.x,L.y+(L.i===5?6.5:7.5),L.z);if(!p||d>70||d<3){L.el.style.display="none";continue}
+const done=L.i<5?locDone(LOC[L.i])&&S.gems.includes(L.i):S.fin,lock=L.i<5?L.i>S.unl:S.unl<LOC.length;const name=L.i<5?LOC[L.i].name:"Puncak Harta";const sub=done?"selesai":lock?"terkunci":L.i<5?`${LOC[L.i].ch.filter((_,k)=>S.done[iid(LOC[L.i],k)]).length}/${LOC[L.i].ch.length} galian · ${Math.round(d)} m`:`peti harta · ${Math.round(d)} m`;
+const key=name+sub+(lock?"l":done?"d":"");if(L.k!==key){L.k=key;L.el.innerHTML=`${esc(name)}<small>${sub}</small>`;L.el.className="lbl"+(lock?" lock":done?" done":"")}L.el.style.display="block";L.el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`}}
+
+/* minimap */
+const mini=$("#mini"),mctx=mini.getContext("2d");const MB=document.createElement("canvas");MB.width=MB.height=112;(function(){const c=MB.getContext("2d"),img=c.createImageData(112,112);for(let j=0;j<112;j++)for(let i=0;i<112;i++){const x=-56+i,z=-56+j,g=groundY(x,z),pd=pathDist(x,z);let col=g<WL+.2?[70,160,215]:g>20?[240,244,246]:g>12?[150,145,135]:pd<1.4?[196,150,100]:[98+g*4,172-g*3,78];const o=(j*112+i)*4;img.data[o]=col[0];img.data[o+1]=col[1];img.data[o+2]=col[2];img.data[o+3]=255}c.putImageData(img,0,0)})();
+function drawMini(t){const c=mctx,s=2;c.setTransform(s,0,0,s,0,0);c.drawImage(MB,0,0);const P=(x,z)=>[x+56,z+56];
+ZONES.forEach((z,i)=>{const [x,y]=P(z.x,z.z),done=S.gems.includes(i),act=i===S.unl;c.beginPath();c.arc(x,y,act?4+Math.sin(t*5):3.2,0,7);c.fillStyle=done?"#23917f":act?"#f2b632":"#8b8b8b";c.fill();c.lineWidth=1.2;c.strokeStyle="#3a2614";c.stroke()});
+const [fx2,fz2]=P(FINAL.x,FINAL.z);c.fillStyle=S.unl>=LOC.length?"#f2b632":"#8b8b8b";c.beginPath();for(let k=0;k<10;k++){const a=k/10*Math.PI*2-Math.PI/2,r=k%2?2:4.6;c.lineTo(fx2+Math.cos(a)*r,fz2+Math.sin(a)*r)}c.closePath();c.fill();c.stroke();
+const [px,pz]=P(pl.x,pl.z);c.save();c.translate(px,pz);c.rotate(-pl.yaw+Math.PI);c.beginPath();c.moveTo(0,-5);c.lineTo(3.6,4);c.lineTo(0,2.2);c.lineTo(-3.6,4);c.closePath();c.fillStyle="#d43a2f";c.fill();c.strokeStyle="#fff";c.lineWidth=1;c.stroke();c.restore()}
+
+/* ---------- update ---------- */
+let near=null,lastStep=0;
+function inWater(x,z){return groundY(x,z)<WL+.15}
+function blocked(x,z){if(Math.hypot(x,z)>52)return true;if(inWater(x,z))return true;for(const c of COL)if(Math.abs(x-c.x)<c.r+.5&&Math.abs(z-c.z)<c.r+.5&&Math.hypot(x-c.x,z-c.z)<c.r+.45)return true;return false}
+function update(dt,t){if(mode==="title"){return}
+let ix=0,iz=0;if(!busy()&&mode==="play"){if(keys.has("l"))ix-=1;if(keys.has("r"))ix+=1;if(keys.has("u"))iz-=1;if(keys.has("d"))iz+=1;ix+=joy.x;iz+=joy.y;if(keys.has("cl"))camYaw+=dt*2;if(keys.has("cr"))camYaw-=dt*2}
+const mag=Math.min(1,Math.hypot(ix,iz));if(mag>.08){const fx0=-Math.sin(camYaw),fz0=-Math.cos(camYaw),rx=Math.cos(camYaw),rz=-Math.sin(camYaw);let dx=fx0*(-iz)+rx*ix,dz=fz0*(-iz)+rz*ix;const l=Math.hypot(dx,dz);dx/=l;dz/=l;const sp=8*mag;const nx=pl.x+dx*sp*dt,nz=pl.z+dz*sp*dt;
+if(!blocked(nx,nz)){pl.x=nx;pl.z=nz}else if(!blocked(nx,pl.z))pl.x=nx;else if(!blocked(pl.x,nz))pl.z=nz;
+const ty=Math.atan2(dx,dz);let d=ty-pl.yaw;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;pl.yaw+=d*Math.min(1,dt*12);pl.speed=mag;pl.walk+=dt*11*mag;if(pl.ground&&t-lastStep>.32){lastStep=t;snd("step")}}else{pl.speed=Math.max(0,pl.speed-dt*5);pl.walk*=.85}
+const g=groundY(pl.x,pl.z);pl.vy-=32*dt;pl.y+=pl.vy*dt;if(pl.y<=g){pl.y=g;pl.vy=0;pl.ground=true}else if(pl.ground&&pl.y-g<.7&&pl.vy<=0){pl.y=g;pl.vy=0}else pl.ground=false;
+for(const p of fx){p.vy-=20*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.r+=dt*8;p.life-=dt}fx=fx.filter(p=>p.life>0);
+/* nearest interactable */
+let best=null,bd=2.6;for(const s of SPOTS){const d=Math.hypot(s.x-pl.x,s.z-pl.z);if(d<bd){bd=d;best=s}}const df=Math.hypot(FINAL.x-pl.x,FINAL.z-pl.z);if(df<3.2&&df<bd+1){best=FINAL}
+if(best!==near){near=best;updAct()}
+/* zone intro */
+if(S.unl<LOC.length&&!S.seen[S.unl]&&!busy()&&mode==="play"){const z=ZONES[S.unl];if(Math.hypot(z.x-pl.x,z.z-pl.z)<10){S.seen[S.unl]=1;zoneIntro(S.unl)}}
+/* goal */
+const tg=activeTarget(),ddx=tg.x-pl.x,ddz=tg.z-pl.z,dist=Math.hypot(ddx,ddz);const ang=Math.atan2(ddx,ddz),rel=ang-(camYaw+Math.PI);$("#gArrow").style.transform=`rotate(${-rel*180/Math.PI}deg)`;$("#gName").textContent=S.fin?"Harta karun ditemukan!":`Tujuan: ${tg.name}`;$("#gDist").textContent=S.fin?"Bebas menjelajah pulau":dist<6?"Kamu sudah sampai":`${Math.round(dist)} m lagi · ikuti cahaya emas`;
+S.px=pl.x;S.pz=pl.z;S.yaw=pl.yaw}
+function updAct(){const b=$("#bAct"),pr=$("#prompt");if(!near||mode!=="play"){b.disabled=true;pr.innerHTML="";$("#actT").textContent="Gali";return}
+if(near===FINAL){b.disabled=false;$("#actT").textContent=S.fin?"Lihat":"Buka";pr.innerHTML=S.fin?"Peti harta sudah terbuka":S.unl>=LOC.length?"Tekan <b>Buka</b> untuk membuka peti harta karun":"Peti terkunci. Kumpulkan 5 huruf dulu";return}
+const l=LOC[near.li],done=S.done[iid(l,near.k)];b.disabled=false;$("#actT").textContent=done?"Lihat":"Gali";pr.innerHTML=near.li>S.unl?`${esc(l.name)} masih terkunci`:`${done?"Lihat":"Gali"} <b>X ${near.k+1}</b> · ${esc(l.name)}`}
+
+/* ---------- input ---------- */
+const KM={arrowleft:"l",a:"l",arrowright:"r",d:"r",arrowup:"u",w:"u",arrowdown:"d",s:"d",q:"cl",e:"",z:""};
+document.addEventListener("keydown",e=>{if(busy()||mode!=="play")return;const k=e.key.toLowerCase();if(k==="e"||k==="enter"){e.preventDefault();act();return}if(k===" "){e.preventDefault();jump();return}if(k==="q"){keys.add("cl");return}if(k==="r"&&false)return;if(KM[k]){keys.add(KM[k]);e.preventDefault()}});
+document.addEventListener("keyup",e=>{const k=e.key.toLowerCase();if(KM[k])keys.delete(KM[k]);if(k==="q")keys.delete("cl")});
+window.addEventListener("blur",()=>{keys.clear();joy.x=joy.y=0});
+const jb=$("#joy"),kn=$("#knob");
+function joyMove(e){const r=jb.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,R=r.width/2-14;let dx=e.clientX-cx,dy=e.clientY-cy;const l=Math.hypot(dx,dy);if(l>R){dx*=R/l;dy*=R/l}kn.style.transform=`translate(${dx}px,${dy}px)`;joy.x=dx/R;joy.y=dy/R}
+jb.addEventListener("pointerdown",e=>{e.preventDefault();joy.id=e.pointerId;try{jb.setPointerCapture(e.pointerId)}catch(_){}joyMove(e)});
+jb.addEventListener("pointermove",e=>{if(e.pointerId===joy.id)joyMove(e)});
+const joyEnd=e=>{if(e.pointerId!==joy.id)return;joy.id=null;joy.x=joy.y=0;kn.style.transform=""};jb.addEventListener("pointerup",joyEnd);jb.addEventListener("pointercancel",joyEnd);jb.addEventListener("lostpointercapture",joyEnd);
+const tl=$("#touch");let drag=null;
+tl.addEventListener("pointerdown",e=>{if(mode!=="play")return;drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{tl.setPointerCapture(e.pointerId)}catch(_){}tl.style.cursor="grabbing"});
+tl.addEventListener("pointermove",e=>{if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;camYaw-=dx*.008;camPitch=Math.max(.12,Math.min(1.2,camPitch+dy*.005))});
+const dEnd=e=>{if(drag&&e.pointerId===drag.id){drag=null;tl.style.cursor="grab"}};tl.addEventListener("pointerup",dEnd);tl.addEventListener("pointercancel",dEnd);
+tl.addEventListener("wheel",e=>{camDist=Math.max(6,Math.min(20,camDist+e.deltaY*.01))},{passive:true});
+function jump(){if(pl.ground&&mode==="play"&&!busy()){pl.vy=12;pl.ground=false;snd("jump")}}
+$("#bJump").addEventListener("pointerdown",e=>{e.preventDefault();jump()});
+$("#bAct").addEventListener("click",()=>act());
+function act(){if(!near||busy()||mode!=="play")return;keys.clear();joy.x=joy.y=0;kn.style.transform="";
+if(near===FINAL){if(S.fin){showEnd();return}if(S.unl<LOC.length){toast(`Peti harta terkunci. Kumpulkan dulu 5 huruf (${S.clues.length}/5).`);return}openFinal();return}
+const l=LOC[near.li];if(near.li>S.unl){toast(`${l.name} masih terkunci. Selesaikan ${LOC[S.unl].name} dulu.`);return}openCh(near)}
+
+/* ---------- challenges ---------- */
+const P=$("#panel");
+const TAGS={pg:["Pilihan ganda",""],bs:["Benar atau salah","g-bs"],ms:["Pilih semua yang benar","g-ms"],or:["Susun urutan","g-or"],mt:["Pasangkan","g-mt"]};
+function head(t,k,l){const g=TAGS[t];return `<div class="ph"><span class="tag ${g[1]}">${g[0]}</span><b>${esc(l.name)} · X ${k+1}</b><button class="x" data-act="close" aria-label="Tutup">${IC.x}</button></div>`}
+function zoneIntro(i){const l=LOC[i];CUR=null;P.innerHTML=`<p class="kaj">${esc(l.kaj)}</p><h2 class="ttl">${esc(l.name)}</h2><div class="dlg" style="margin-top:10px"><div class="av">${PARROT}</div><div><div class="who"><b>Kak Beo</b>pemandu petualangan</div><p class="say">${esc(l.intro)}</p></div></div><p style="font-weight:700;color:var(--mute)">${l.ch.length} tanda X menunggu digali di sekitar sini.</p><button class="btn" data-act="close">Ayo menggali</button>`;ov("ovPanel",true)}
+function openCh(s){const l=LOC[s.li],k=s.k,c=l.ch[k],id=iid(l,k);snd("dig");
+if(S.done[id]){P.innerHTML=head(c.t,k,l)+`<p class="q">${esc(c.q)}</p><p class="ex">${esc(c.e)}</p><button class="btn" data-act="close">Tutup</button>`;CUR=null;ov("ovPanel",true);return}
+CUR={l,k,c,id,t:c.t,s};
+if(c.t==="pg"){CUR.ord=shuffle([0,1,2,3]);CUR.gone=[];rPg()}
+else if(c.t==="bs"){CUR.gone=[];rBs()}
+else if(c.t==="ms"){CUR.ord=shuffle(c.o.map((_,i)=>i));CUR.sel=new Set();CUR.lock=new Set();rMs()}
+else if(c.t==="or"){CUR.slots=Array(c.items.length).fill(null);CUR.lockA=Array(c.items.length).fill(false);CUR.pool=shuffle(c.items.map((_,i)=>i));rOr()}
+else if(c.t==="mt"){CUR.right=shuffle(c.pairs.map((_,i)=>i));CUR.pair=Array(c.pairs.length).fill(null);CUR.lockA=Array(c.pairs.length).fill(false);CUR.sel=null;rMt()}
+ov("ovPanel",true)}
+function rPg(m){const c=CUR.c;P.innerHTML=head("pg",CUR.k,CUR.l)+`<p class="q">${esc(c.q)}</p><div class="opts">${CUR.ord.map((i,n)=>`<button class="opt ${CUR.gone.includes(i)?"gone":""}" data-act="pg" data-i="${i}" ${CUR.gone.includes(i)?"disabled":""}><b>${"ABCD"[n]}</b><span>${esc(c.o[i])}</span></button>`).join("")}</div><p class="msg">${m||""}</p>`}
+function rBs(m){const c=CUR.c;P.innerHTML=head("bs",CUR.k,CUR.l)+`<p class="q">${esc(c.q)}</p><div class="bsrow"><button class="bsb t ${CUR.gone.includes(1)?"gone":""}" data-act="bs" data-v="1" ${CUR.gone.includes(1)?"disabled":""}>${IC.check}Benar</button><button class="bsb f ${CUR.gone.includes(0)?"gone":""}" data-act="bs" data-v="0" ${CUR.gone.includes(0)?"disabled":""}>${IC.x}Salah</button></div><p class="msg">${m||""}</p>`}
+function rMs(m,bad){const c=CUR.c;P.innerHTML=head("ms",CUR.k,CUR.l)+`<p class="q">${esc(c.q)}</p><div class="opts">${CUR.ord.map((i,n)=>{const lk=CUR.lock.has(i),on=CUR.sel.has(i);return `<button class="opt ${lk?"lk":on?"on":""} ${bad&&bad.includes(i)?"bad":""}" data-act="ms" data-i="${i}" aria-pressed="${on||lk}"><b>${lk||on?"✓":"ABCDEF"[n]}</b><span>${esc(c.o[i][0])}</span></button>`}).join("")}</div><button class="btn jade" data-act="chkms" style="margin-top:12px" ${CUR.sel.size||CUR.lock.size?"":"disabled"}>Periksa pilihan</button><p class="msg">${m||""}</p>`}
+function rOr(m,bad){const c=CUR.c,full=CUR.slots.every(s=>s!==null);P.innerHTML=head("or",CUR.k,CUR.l)+`<p class="q">${esc(c.q)}</p><p class="sub">Urutanmu (ketuk untuk mengembalikan)</p><ol class="slots">${CUR.slots.map((s,i)=>`<li><button data-act="unslot" data-i="${i}" class="${s===null?"":"f"} ${CUR.lockA[i]?"lk":""} ${bad&&bad.includes(i)?"bad":""}">${s===null?"…":esc(c.items[s])}</button></li>`).join("")}</ol>${CUR.pool.length?`<p class="sub">Kartu acak</p><div class="pool">${CUR.pool.map(i=>`<button data-act="slot" data-i="${i}">${esc(c.items[i])}</button>`).join("")}</div>`:""}<button class="btn jade" data-act="chkor" ${full&&!bad?"":"disabled"}>Periksa urutan</button><p class="msg">${m||""}</p>`}
+const PC=["#2f7fd1","#d4473b","#8a4fd1","#23917f"];
+function rMt(m,bad){const c=CUR.c,full=CUR.pair.every(p=>p!==null),usedBy=j=>CUR.pair.indexOf(j);P.innerHTML=head("mt",CUR.k,CUR.l)+`<p class="q">${esc(c.q)}</p><div class="mt"><div>${c.pairs.map((p,i)=>`<button class="mb L ${CUR.sel===i?"sel":""} ${CUR.lockA[i]?"lk":""} ${bad&&bad.includes(i)?"bad":""}" data-act="L" data-i="${i}">${esc(p[0])}${CUR.pair[i]!==null?`<i style="background:${PC[i]}">${i+1}</i>`:""}</button>`).join("")}</div><div>${CUR.right.map(j=>{const u=usedBy(j);return `<button class="mb ${u>-1&&CUR.lockA[u]?"lk":""}" data-act="R" data-i="${j}">${esc(c.pairs[j][1])}${u>-1?`<i style="background:${PC[u]}">${u+1}</i>`:""}</button>`}).join("")}</div></div><button class="btn jade" data-act="chkmt" ${full&&!bad?"":"disabled"}>Periksa pasangan</button><p class="msg">${m||""}</p>`}
+function shakeP(){P.classList.remove("shake");void P.offsetWidth;P.classList.add("shake")}
+function wrong(credit){if(!(CUR.id in S.cr))S.cr[CUR.id]=credit||0;snd("bad");shakeP()}
+function coinFx(x,y,z,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=2+Math.random()*3;fx.push({x,y:y+.8,z,vx:Math.cos(a)*v,vz:Math.sin(a)*v,vy:6+Math.random()*5,r:Math.random()*3,life:1.3})}}
+function solve(){const first=!(CUR.id in S.cr);if(first)S.cr[CUR.id]=1;const coins=first?30:10;S.coins+=coins;S.done[CUR.id]=1;hud();snd("ok");setTimeout(()=>snd("coin"),250);coinFx(CUR.s.x,CUR.s.y,CUR.s.z,first?16:8);
+const c=CUR.c,l=CUR.l,all=locDone(l);
+P.innerHTML=`<div class="rw"><svg class="chest" viewBox="0 0 150 120"><ellipse cx="75" cy="112" rx="58" ry="7" fill="rgba(58,38,20,.25)"/><circle class="glow" cx="75" cy="50" r="46" fill="#f2b632" opacity=".3"/><rect x="25" y="55" width="100" height="52" rx="6" fill="#9a5b2a" stroke="#3a2614" stroke-width="3"/><rect x="25" y="70" width="100" height="6" fill="#7a4a24"/><g class="glow"><circle cx="55" cy="56" r="8" fill="#f2b632" stroke="#7a5310" stroke-width="2"/><circle cx="75" cy="52" r="8" fill="#f2b632" stroke="#7a5310" stroke-width="2"/><circle cx="95" cy="56" r="8" fill="#f2b632" stroke="#7a5310" stroke-width="2"/></g><g class="lid"><path d="M25 55V40q0-18 50-18t50 18v15z" fill="#c07a3a" stroke="#3a2614" stroke-width="3"/><rect x="68" y="44" width="14" height="14" rx="2" fill="#f2b632" stroke="#3a2614" stroke-width="2"/></g></svg><h3>${first?"Harta ditemukan!":"Akhirnya terbuka!"}</h3><em>+${coins} koin</em></div><p class="ex">${esc(c.e)}</p><button class="btn" data-act="${all?"clue":"close"}">${all?"Ambil gulungan petunjuk":"Lanjut menjelajah"}</button>`;
+setTimeout(()=>burst(first?14:6),200);setTimeout(()=>{const b=P.querySelector(".btn");if(b)b.focus({preventScroll:true})},80)}
+P.addEventListener("click",e=>{const b=e.target.closest("[data-act]");if(!b||b.disabled)return;const a=b.dataset.act,i=+b.dataset.i;
+if(a==="close"){ov("ovPanel",false);CUR=null;updAct();return}
+if(a==="clue"){showClue();return}
+if(a==="final"){checkFinal();return}
+if(a==="toend"){ov("ovPanel",false);showEnd();return}
+if(a==="tile"||a==="lslot"){finTap(a,i);return}
+if(!CUR)return;const c=CUR.c;
+if(a==="pg"){if(i===0)solve();else{CUR.gone.push(i);wrong();rPg(`Belum tepat. Petunjuk: ${esc(c.h)}`)}}
+else if(a==="bs"){const v=b.dataset.v==="1";if(v===c.a)solve();else{CUR.gone.push(v?1:0);wrong();rBs(`Belum tepat. Petunjuk: ${esc(c.h)}`)}}
+else if(a==="ms"){if(CUR.lock.has(i))return;CUR.sel.has(i)?CUR.sel.delete(i):CUR.sel.add(i);snd("tap");rMs()}
+else if(a==="chkms"){const n=c.o.length,need=c.o.map((o,j)=>o[1]?j:-1).filter(j=>j>=0);const pick=new Set([...CUR.sel,...CUR.lock]);const okc=c.o.filter((o,j)=>!!o[1]===pick.has(j)).length;
+if(okc===n){solve();return}const bad=[...CUR.sel].filter(j=>!c.o[j][1]);CUR.sel.forEach(j=>{if(c.o[j][1])CUR.lock.add(j)});wrong(okc/n);const miss=need.filter(j=>!CUR.lock.has(j)).length;
+rMs(`${bad.length?`${bad.length} pilihan keliru (merah). `:""}${miss?`Masih ada ${miss} jawaban benar yang belum dipilih. `:""}Petunjuk: ${esc(c.h)}`,bad);setTimeout(()=>{if(!CUR||CUR.t!=="ms")return;CUR.sel=new Set();rMs(P.querySelector(".msg").innerHTML)},900)}
+else if(a==="slot"){const s=CUR.slots.indexOf(null);if(s<0)return;CUR.slots[s]=i;CUR.pool=CUR.pool.filter(x=>x!==i);snd("tap");rOr()}
+else if(a==="unslot"){if(CUR.lockA[i]||CUR.slots[i]===null)return;CUR.pool.push(CUR.slots[i]);CUR.slots[i]=null;snd("tap");rOr()}
+else if(a==="chkor"){const n=c.items.length,okc=CUR.slots.filter((s,j)=>s===j).length;if(okc===n){solve();return}const bad=[];CUR.slots.forEach((s,j)=>{if(s===j)CUR.lockA[j]=true;else bad.push(j)});wrong(okc/n);rOr(`${okc} dari ${n} kartu sudah tepat (hijau). Kartu merah kembali ke tumpukan.`,bad);
+setTimeout(()=>{if(!CUR||CUR.t!=="or")return;bad.forEach(j=>{CUR.pool.push(CUR.slots[j]);CUR.slots[j]=null});rOr(`${okc} dari ${n} sudah tepat. Susun lagi sisanya.`)},900)}
+else if(a==="L"){if(CUR.lockA[i])return;if(CUR.pair[i]!==null)CUR.pair[i]=null;CUR.sel=i;snd("tap");rMt()}
+else if(a==="R"){if(CUR.sel===null){rMt("Ketuk pilihan di kolom kiri dulu.");return}const u=CUR.pair.indexOf(i);if(u>-1){if(CUR.lockA[u])return;CUR.pair[u]=null}CUR.pair[CUR.sel]=i;CUR.sel=null;snd("tap");rMt()}
+else if(a==="chkmt"){const n=c.pairs.length,okc=CUR.pair.filter((p,j)=>p===j).length;if(okc===n){solve();return}const bad=[];CUR.pair.forEach((p,j)=>{if(p===j)CUR.lockA[j]=true;else bad.push(j)});wrong(okc/n);rMt(`${okc} dari ${n} pasangan sudah tepat (hijau).`,bad);
+setTimeout(()=>{if(!CUR||CUR.t!=="mt")return;bad.forEach(j=>CUR.pair[j]=null);rMt(`${okc} dari ${n} sudah tepat. Pasangkan lagi sisanya.`)},900)}});
+function showClue(){const l=CUR.l,i=LOC.indexOf(l);CUR=null;if(!S.gems.includes(i)){S.gems.push(i);S.clues.push(i);S.coins+=50;S.unl=Math.max(S.unl,i+1)}hud();snd("win");
+const nextTxt=S.unl>=LOC.length?"Ikuti cahaya emas ke Puncak Harta di kaki gunung!":`Ikuti cahaya emas ke ${LOC[S.unl].name}.`;
+P.innerHTML=`<div class="rw"><h3>${esc(l.name)} tuntas!</h3><p style="margin:4px 0 10px;font-weight:700;color:var(--mute)">Permata ${i+1} dari 5 · +50 koin</p><div style="width:64px;margin:0 auto 14px">${gemSvg(l.gem,1)}</div></div><div class="scroll"><p style="margin:0;font-weight:800;color:var(--mute)">Gulungan petunjuk ${i+1}</p><span class="letter">${l.letter}</span><p>${esc(l.clue)}</p></div><p style="text-align:center;font-weight:800">${nextTxt}</p><button class="btn" data-act="close">Lanjut menjelajah</button>`;burst(18)}
+
+/* final */
+function openFinal(){if(!FT)FT={pool:shuffle([...FIN.word].map((ch,i)=>({ch,i}))),slots:Array(FIN.word.length).fill(null)};renderFinal();ov("ovPanel",true)}
+function renderFinal(m){const full=FT.slots.every(s=>s!==null);P.innerHTML=`<div class="ph"><span class="tag">Peti harta karun</span><b>Puncak Harta</b><button class="x" data-act="close" aria-label="Tutup">${IC.x}</button></div><div class="rw"><svg class="chest" viewBox="0 0 150 120"><ellipse cx="75" cy="112" rx="58" ry="7" fill="rgba(58,38,20,.25)"/><rect x="25" y="55" width="100" height="52" rx="6" fill="#9a5b2a" stroke="#3a2614" stroke-width="3"/><path d="M25 55V40q0-18 50-18t50 18v15z" fill="#c07a3a" stroke="#3a2614" stroke-width="3"/><rect x="62" y="48" width="26" height="22" rx="3" fill="#f2b632" stroke="#3a2614" stroke-width="2.4"/><path d="M68 48v-6a7 7 0 0 1 14 0v6" fill="none" stroke="#c9cfd6" stroke-width="3"/></svg></div><p class="q" style="text-align:center">${esc(FIN.q)}</p><div class="tiles">${FT.slots.map((s,i)=>`<button class="lslot ${s===null?"e":""}" data-act="lslot" data-i="${i}" aria-label="Kotak ${i+1}">${s===null?"":FT.pool[s].ch}</button>`).join("")}</div><p class="sub" style="text-align:center">Huruf dari 5 gulungan petunjuk</p><div class="tiles">${FT.pool.map((t,i)=>FT.slots.includes(i)?"":`<button data-act="tile" data-i="${i}">${t.ch}</button>`).join("")}</div><button class="btn" data-act="final" ${full?"":"disabled"}>Buka peti</button><p class="msg">${m||""}</p>`}
+function finTap(a,i){if(a==="tile"){const s=FT.slots.indexOf(null);if(s<0)return;FT.slots[s]=i}else{if(FT.slots[i]===null)return;FT.slots[i]=null}snd("tap");renderFinal()}
+function checkFinal(){const w=FT.slots.map(s=>FT.pool[s].ch).join("");if(w===FIN.word){if(!("fin" in S.cr))S.cr.fin=1;S.fin=true;S.coins+=100;hud();snd("win");coinFx(FINAL.x,FINAL.y+1,FINAL.z,40);
+P.innerHTML=`<div class="rw"><svg class="chest" viewBox="0 0 150 120"><ellipse cx="75" cy="112" rx="58" ry="7" fill="rgba(58,38,20,.25)"/><circle class="glow" cx="75" cy="50" r="56" fill="#f2b632" opacity=".35"/><rect x="25" y="55" width="100" height="52" rx="6" fill="#9a5b2a" stroke="#3a2614" stroke-width="3"/><g class="glow">${LOC.map((l,i)=>`<g transform="translate(${36+i*16} 38) scale(1.1)">${gemSvg(l.gem,1).replace('<svg viewBox="0 0 24 24">','<svg width="22" height="22" viewBox="0 0 24 24">')}</g>`).join("")}</g><g class="lid"><path d="M25 55V40q0-18 50-18t50 18v15z" fill="#c07a3a" stroke="#3a2614" stroke-width="3"/></g></svg><h3>Peti harta karun terbuka!</h3><em>+100 koin</em></div><p class="ex">${esc(FIN.e)}</p><button class="btn" data-act="toend">Lihat rapor perburuan</button>`;burst(30);setTimeout(()=>burst(20),500)}
+else{if(!("fin" in S.cr))S.cr.fin=0;snd("bad");shakeP();FT.slots=FT.slots.map(()=>null);renderFinal(w==="MAKAN"?"Itu kata “makan”, bukan jawaban teka-tekinya! "+esc(FIN.h):`Peti belum terbuka. ${esc(FIN.h)}`)}}
+
+/* result */
+const GR=[[86,"A"],[81,"A-"],[76,"B+"],[71,"B"],[66,"B-"],[61,"C+"],[56,"C"],[51,"C-"],[46,"D"],[0,"E"]];
+function totals(){let c=0;LOC.forEach(l=>l.ch.forEach((_,i)=>c+=S.cr[iid(l,i)]||0));c+=S.cr.fin||0;return{c,nilai:Math.round(c/TOTAL*100)}}
+const huruf=v=>GR.find(g=>v>=g[0])[1];
+function desc(v){return v>=86?"Pemburu Legendaris. Kamu menguasai seluruh bahan kajian dengan sangat baik.":v>=71?"Penjelajah Andal. Sebagian besar tantangan terpecahkan sejak percobaan pertama.":v>=56?"Penjelajah Muda. Ulangi bahan kajian yang masih merah, ya.":"Awak Baru. Pelajari lagi materinya sebelum berpetualang kembali."}
+function kode(){const s=[S.p.nama,S.p.kelas,S.p.nim,totals().nilai,S.coins].join("|");let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36).toUpperCase().padStart(6,"0").slice(-6)}
+function rows(){return [...LOC.map((l,i)=>{const c=l.ch.reduce((s,_,k)=>s+(S.cr[iid(l,k)]||0),0);return{n:`BK ${i+1} · ${l.kaj.split(" · ")[1]}`,p:Math.round(c/l.ch.length*100)}}),{n:"Peti harta karun",p:Math.round((S.cr.fin||0)*100)}]}
+function showEnd(){const t=totals(),first=Object.values(S.cr).filter(v=>v===1).length;
+$("#eWho").textContent=`${S.p.nama} · ${S.p.kelas}${S.p.nim?" · "+S.p.nim:""}`;$("#eNilai").textContent=t.nilai;$("#ePred").innerHTML=`Nilai huruf <b>${huruf(t.nilai)}</b>`;$("#eDesc").textContent=desc(t.nilai);
+$("#eStats").innerHTML=`<div><b>${first}/${TOTAL}</b>tepat sekali coba</div><div><b>${S.coins}</b>koin</div><div><b>${S.gems.length}/5</b>permata</div>`;
+$("#eBars").innerHTML=rows().map(r=>`<div class="br"><b>${esc(r.n)}</b><span>${r.p}%</span><div class="tr"><i class="${r.p>=80?"":r.p>=60?"mid":"low"}" style="width:${r.p}%"></i></div></div>`).join("");
+$("#eKode").textContent=kode();
+const w=[];LOC.forEach(l=>l.ch.forEach((c,k)=>{const v=S.cr[iid(l,k)];if(v!==undefined&&v<1)w.push({r:l.name,q:c.q,e:c.e,ans:c.t==="pg"?c.o[0]:c.t==="bs"?(c.a?"Benar":"Salah"):c.t==="ms"?c.o.filter(o=>o[1]).map(o=>o[0]).join("; "):c.t==="or"?c.items.join(" → "):c.pairs.map(p=>p[0]+": "+p[1]).join("; ")})}));if(S.cr.fin===0)w.push({r:"Puncak Harta",q:FIN.q,e:FIN.e,ans:FIN.word});
+$("#eRevT").textContent=w.length?`Pembahasan yang keliru di percobaan pertama (${w.length})`:"Semua tepat sejak percobaan pertama. MasyaAllah!";
+$("#eList").innerHTML=w.map(x=>`<li><p><b>${esc(x.r)}:</b> ${esc(x.q)}</p><p class="r">Jawaban tepat: ${esc(x.ans)}</p><p>${esc(x.e)}</p></li>`).join("");
+$("#eNote").textContent="";$("#copyBox").hidden=true;ov("ovEnd",true)}
+function resText(){const t=totals(),d=new Date(),pad=x=>String(x).padStart(2,"0");return ["JEJAK HARTA PENELITI 3D · Rapor Perburuan",`Mata kuliah: ${IDENT.mk}`,`Nama: ${S.p.nama}`,`Kelas: ${S.p.kelas}${S.p.nim?" | NIM/absen: "+S.p.nim:""}`,`Nilai: ${t.nilai} (huruf ${huruf(t.nilai)})`,`Koin: ${S.coins} | Permata: ${S.gems.length}/5`,...rows().map(r=>`- ${r.n}: ${r.p}%`),`Kode verifikasi: ${kode()}`,`Waktu: ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}.${pad(d.getMinutes())}`].join("\n")}
+$("#eCopy").addEventListener("click",async()=>{const t=resText();try{await navigator.clipboard.writeText(t);$("#eNote").textContent="Hasil tersalin. Tempel dan kirim ke dosen/gurumu, ya!"}catch(e){const b=$("#copyBox");b.hidden=false;b.value=t;b.focus();b.select();$("#eNote").textContent="Salin teks di bawah ini secara manual."}});
+$("#eFree").addEventListener("click",()=>{ov("ovEnd",false);toast("Selamat menjelajah pulau!")});
+$("#eAgain").addEventListener("click",()=>{S={p:S.p,unl:0,done:{},cr:{},coins:0,gems:[],clues:[],fin:false,mute:S.mute,seen:{},px:SPAWN.x,pz:SPAWN.z,yaw:Math.PI};FT=null;pl.x=SPAWN.x;pl.z=SPAWN.z;pl.y=groundY(pl.x,pl.z);pl.yaw=Math.PI;camYaw=0;ov("ovEnd",false);hud();updAct();toast("Perburuan dimulai lagi. Ikuti cahaya emas!")});
+
+/* flow */
+$("#bStart").addEventListener("click",()=>{snd("tap");ov("ovTitle",false);ov("ovForm",true);setTimeout(()=>$("#iNama").focus(),60)});
+$("#fForm").addEventListener("submit",e=>{e.preventDefault();const n=$("#iNama").value.trim(),k=$("#iKelas").value.trim(),m=$("#iNim").value.trim();if(n.length<2){$("#fErr").textContent="Nama lengkap wajib diisi.";$("#iNama").focus();return}if(!k){$("#fErr").textContent="Kelas/rombel wajib diisi.";$("#iKelas").focus();return}$("#fErr").textContent="";S.p={nama:n,kelas:k,nim:m};snd("tap");ov("ovForm",false);story=0;showStory()});
+function showStory(){$("#stAv").innerHTML=PARROT;$("#stSay").textContent=STORY[story].replace("{n}",S.p.nama.split(" ")[0]);$("#stNext").textContent=story<STORY.length-1?"Lanjut":"Mulai menjelajah";ov("ovStory",true)}
+$("#stNext").addEventListener("click",()=>{snd("tap");story++;if(story<STORY.length)showStory();else{ov("ovStory",false);startPlay();toast("Geser joystick untuk berjalan, geser layar untuk memutar kamera",3600)}});
+function startPlay(){mode="play";["#top","#joy","#btns"].forEach(s=>$(s).style.visibility="visible");updAct()}
+function setHudVisible(v){["#top","#joy","#btns"].forEach(s=>$(s).style.visibility=v?"visible":"hidden")}
+
+/* loop */
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;update(dt,t);render(t);if(mode!=="title"&&((now/100)|0)%2===0)drawMini(t);requestAnimationFrame(loop)}
+$("#chips").innerHTML=[IDENT.mk,"5 bahan kajian",TOTAL+" tantangan"].map(c=>`<span class="chip">${c}</span>`).join("");
+window.JH3={LOC,SPOTS,FINAL,ZONES,pl,state:()=>S,tp:(x,z)=>{pl.x=x;pl.z=z;pl.y=groundY(x,z)+.1;pl.vy=0},setCam:(y,p)=>{camYaw=y;if(p!=null)camPitch=p}};
+window.claude?.hot?.snapshot?.(()=>({p:S.p,unl:S.unl,done:S.done,cr:S.cr,coins:S.coins,gems:S.gems,clues:S.clues,fin:S.fin,mute:S.mute,seen:S.seen,px:S.px,pz:S.pz,yaw:S.yaw}));
+function start(d){updMute();hud();if(d&&d.p){S={...S,...d,seen:d.seen||{}};if(!blocked(S.px,S.pz)){pl.x=S.px;pl.z=S.pz}pl.y=groundY(pl.x,pl.z);pl.yaw=S.yaw||Math.PI;startPlay();if(S.fin)showEnd()}else{setHudVisible(false);ov("ovTitle",true)}requestAnimationFrame(loop)}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+}
+</script>
+</body>
+</html>
