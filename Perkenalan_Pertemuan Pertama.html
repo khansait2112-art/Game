@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Petualangan Pulau Pintar</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: ceria, kocak, seperti taman bermain blok
+   IDEA: dunia blok ala Roblox — pulau-pulau melayang yang dijelajahi
+   PICTURE: dunia 3D layar penuh, avatar blok lucu yang memantul
+   COLOUR and TYPE: langit biru, rumput hijau, aksen kuning; Fredoka
+   LAYOUT: game layar penuh, HUD di atas, joystick di bawah */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:Fredoka,system-ui,sans-serif;background:#7fd3ff;color:#1b2440;user-select:none;touch-action:none}
+canvas{display:block}
+.hud{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;z-index:5}
+.pill{background:#fff;border:3px solid #1b2440;border-radius:16px;padding:6px 12px;font-weight:700;font-size:16px;box-shadow:0 4px 0 #1b2440}
+#zone{background:#ffd84a}
+#tip{position:fixed;bottom:150px;left:50%;transform:translateX(-50%);background:#1b2440;color:#fff;padding:8px 14px;border-radius:14px;font-size:15px;z-index:5;white-space:nowrap;transition:opacity .3s}
+#joy{position:fixed;left:24px;bottom:24px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid rgba(27,36,64,.5);z-index:6}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:#fff;border:3px solid #1b2440}
+#jump{position:fixed;right:24px;bottom:34px;width:90px;height:90px;border-radius:50%;background:#ff7a59;border:3px solid #1b2440;box-shadow:0 5px 0 #1b2440;color:#fff;font:700 18px Fredoka;z-index:6}
+.modal{position:fixed;inset:0;background:rgba(20,30,60,.55);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.card{background:#fff;border:4px solid #1b2440;border-radius:24px;box-shadow:0 8px 0 #1b2440;max-width:460px;width:100%;padding:20px;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.4) rotate(-6deg)}to{transform:none}}
+.card h2{font-size:24px;line-height:1.1;margin-bottom:6px}
+.card .who{font-size:14px;color:#5a6488;margin-bottom:10px}
+.card p{font-size:18px;margin-bottom:14px}
+.opts{display:grid;gap:10px}
+.opts button,.big{font:600 17px Fredoka;padding:12px;border:3px solid #1b2440;border-radius:14px;background:#e9f6ff;box-shadow:0 4px 0 #1b2440;cursor:pointer;text-align:left;min-height:48px}
+.opts button:active,.big:active{transform:translateY(3px);box-shadow:0 1px 0 #1b2440}
+.opts .ok{background:#7be38a}.opts .no{background:#ff9a9a;animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.big{background:#ffd84a;text-align:center;width:100%;margin-top:12px}
+.fb{font-size:16px;margin-top:10px;min-height:22px}
+#start .card{text-align:center}
+#start h1{font-size:34px;line-height:1.05;margin-bottom:8px}
+#start ul{text-align:left;font-size:16px;margin:10px 0 4px 20px}
+input{font:16px Fredoka;padding:10px;border:3px solid #1b2440;border-radius:12px;width:100%;margin-top:8px}
+@media(prefers-reduced-motion:reduce){.card{animation:none}}
+</style></head><body>
+<div class="hud"><span class="pill" id="zone">🏝️ Pulau Utama</span><span class="pill">⭐ <b id="stars">0</b>/<span id="tot"></span></span><span class="pill">🪙 <b id="coins">0</b></span></div>
+<div id="tip">Jalan ke tokoh yang memantul untuk menjawab soal!</div>
+<div id="joy"><div id="knob"></div></div>
+<button id="jump">LOMPAT</button>
+<div class="modal" id="start" style="display:flex"><div class="card">
+<h1>Petualangan Pulau Pintar</h1>
+<div class="who">Kenalan & tes awal · Les privat kelas 6 SD</div>
+<ul><li>Mulai dari 👋 Pulau Kenalan, lalu jelajahi pulau lain lewat jembatan</li><li>Temui tokoh lucu, jawab soalnya, kumpulkan ⭐</li><li>Ambil koin 🪙 yang berputar di mana-mana</li><li>HP: joystick kiri + tombol lompat · Laptop: WASD/panah + spasi</li></ul>
+<input id="nama" placeholder="Tulis namamu dulu ya" maxlength="20">
+<button class="big" id="go">Ayo Main! 🚀</button></div></div>
+<div class="modal" id="quiz"><div class="card"><h2 id="qt"></h2><div class="who" id="qw"></div><p id="qq"></p><div class="opts" id="qo"></div><div class="fb" id="qf"></div><button class="big" id="qc" style="display:none">Lanjut ➜</button></div></div>
+<div class="modal" id="end"><div class="card" style="text-align:center"><h2 id="et"></h2><p id="ep"></p><div id="er" style="text-align:left;font-size:15px;max-height:45vh;overflow:auto"></div><button class="big" onclick="location.reload()">Main Lagi 🔁</button></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>{
+const ZONES=[
+{n:'Pulau Membaca',e:'📚',c:0xff6b8a,x:0,z:-34,npc:'Kak Kancil',q:[
+['Bacakan dengan suara keras ya:\n"Dika pergi ke pasar bersama ibu. Mereka membeli sayur, ikan, dan buah."',['Lancar 😄','Masih terbata-bata 🙂','Perlu dibantu 🤗'],'g'],
+['Dika pergi ke mana?',['Sekolah','Pasar','Sawah'],1],
+['Dika pergi bersama siapa?',['Ayah','Kakak','Ibu'],2],
+['Mana yang TIDAK dibeli Dika?',['Ikan','Buku','Buah'],1]]},
+{n:'Pulau Berhitung',e:'🔢',c:0x4fb3e8,x:32,z:-12,npc:'Robo Hitung',q:[
+['15 + 27 = …',['42','32','43'],0],
+['50 − 18 = …',['38','32','22'],1],
+['6 × 7 = …',['36','48','42'],2],
+['36 : 4 = …',['9','8','6'],0]]},
+{n:'Pulau Teka-teki',e:'🧩',c:0xa77bff,x:22,z:26,npc:'Profesor Burung Hantu',q:[
+['Lanjutkan polanya: 2, 4, 6, 8, …',['9','10','12'],1],
+['Mana yang BUKAN buah?',['Apel','Wortel','Pisang'],1],
+['Sesudah hari Rabu adalah hari…',['Selasa','Kamis','Jumat'],1]]},
+{n:'Pulau Perasaan',e:'💛',c:0xffb340,x:-22,z:26,npc:'Beruang Baik',q:[
+['Bagaimana perasaanmu hari ini?',['Senang 😄','Biasa saja 😐','Sedih/capek 😔'],-1],
+['Bagaimana perasaanmu kalau belajar?',['Suka 🤩','Kadang bosan 😅','Kurang suka 😓'],-1],
+['Temanmu jatuh di depanmu. Kamu…',['Menertawakan','Menolongnya','Pergi saja'],1]]},
+{n:'Pulau Kebiasaanku',e:'🎒',c:0x46c97a,x:-32,z:-12,npc:'Pak Kura-kura',q:[
+['Di rumah, kamu biasa belajar…',['Setiap hari','Kalau ada PR saja','Jarang'],-1],
+['Pelajaran yang paling susah menurutmu?',null],
+['Kamu lebih suka belajar dengan cara…',['Melihat gambar/video','Mendengar penjelasan','Praktik langsung'],-1]]},
+{n:'Pulau Kenalan',e:'👋',c:0xff7a1a,x:0,z:0.01,npc:'Si Bunglon',hub:1,q:[
+['Berapa usiamu sekarang?',null],
+['Apa hobimu?',null],
+['Apa cita-citamu?',null],
+['Pelajaran apa yang paling kamu suka?',null],
+['Apa warna favoritmu?',null]]}];
+const $=id=>document.getElementById(id);
+let nama='Petualang',stars=0,coins=0,playing=false,answered={},score={};
+// ---- scene
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;document.body.appendChild(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color(0x7fd3ff);S.fog=new THREE.Fog(0x7fd3ff,60,140);
+const cam=new THREE.PerspectiveCamera(60,1,.1,300);
+S.add(new THREE.HemisphereLight(0xffffff,0x88aa66,.8));
+const sun=new THREE.DirectionalLight(0xffffff,.8);sun.position.set(30,50,20);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60});S.add(sun);
+const M=c=>new THREE.MeshLambertMaterial({color:c});
+const box=(w,h,d,c,x,y,z,p=S)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;p.add(m);return m};
+const plats=[];// {x,z,w,d,top}
+const plat=(x,z,w,d,c,top=0)=>{box(w,1,d,c,x,top-.5,z);box(w*.92,4,d*.92,0x9a6b3f,x,top-3,z);plats.push({x,z,w,d,top})};
+// hub
+plat(0,0,22,22,0x6fd36f);
+ZONES.forEach(Z=>{if(Z.hub)return;plat(Z.x,Z.z,16,16,0x6fd36f,0);
+ box(13,.2,13,Z.c,Z.x,.1,Z.z).material.opacity=.5;
+ // bridge
+ const dx=Z.x,dz=Z.z,L=Math.hypot(dx,dz),n=Math.floor(L/2);
+ for(let i=0;i<n;i++){const t=i/n,bx=dx*t,bz=dz*t;if(Math.abs(bx)<11&&Math.abs(bz)<11)continue;if(Math.abs(bx-Z.x)<8&&Math.abs(bz-Z.z)<8)continue;
+  box(3,.5,3,i%2?0xc98a4b:0xe0a663,bx,-.25,bz);plats.push({x:bx,z:bz,w:3.2,d:3.2,top:0})}
+ // trees & sign
+ for(let k=0;k<3;k++){const a=k*2.1,tx=Z.x+Math.cos(a)*6,tz=Z.z+Math.sin(a)*6;box(.8,2.4,.8,0x8b5a2b,tx,1.2,tz);box(2.6,2.6,2.6,0x3fae4f,tx,3.4,tz)}
+});
+// clouds
+const clouds=[];for(let i=0;i<14;i++){const g=new THREE.Group();for(let j=0;j<3;j++)box(4+j,2,3,0xffffff,j*2.5,j%2,0,g);g.position.set(Math.random()*160-80,18+Math.random()*10,Math.random()*160-80);S.add(g);clouds.push(g)}
+// text sprite
+function label(t,col='#1b2440'){const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');x.fillStyle='#fff';x.strokeStyle=col;x.lineWidth=10;
+ x.beginPath();x.roundRect?x.roundRect(8,8,496,112,40):x.rect(8,8,496,112);x.fill();x.stroke();x.fillStyle='#1b2440';x.font='bold 54px Fredoka, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,256,66);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.scale.set(6,1.5,1);return s}
+// blocky character
+function blocky(body,head,face=true){const g=new THREE.Group();
+ const torso=box(1.4,1.5,.8,body,0,2.25,0,g),hd=box(1.1,1.1,1.1,head,0,3.6,0,g);
+ if(face){box(.18,.25,.05,0x111111,-.22,3.7,.56,g);box(.18,.25,.05,0x111111,.22,3.7,.56,g);box(.45,.1,.05,0xc0392b,0,3.35,.56,g);
+  box(.2,.12,.04,0xff9aa8,-.4,3.45,.56,g);box(.2,.12,.04,0xff9aa8,.4,3.45,.56,g)}
+ const limb=(x,y,c)=>{const p=new THREE.Group();p.position.set(x,y,0);box(.6,1.4,.6,c,0,-.7,0,p);g.add(p);return p};
+ g.userData={hd,torso,la:limb(-1,3,head),ra:limb(1,3,head),ll:limb(-.36,1.5,0x2f5fd0),rl:limb(.36,1.5,0x2f5fd0)};S.add(g);return g}
+const P=blocky(0x26c6da,0xffd27f);const pv={x:0,y:0,z:4,vy:0,ry:Math.PI,ground:true,squash:0};
+const hat=box(1.3,.3,1.3,0xff4f7b,0,4.3,0,P);box(.8,.5,.8,0xff4f7b,0,4.6,0,P);
+// NPCs
+const npcs=ZONES.map((Z,i)=>{const g=blocky(Z.c,0xffe0b0);const nx=Z.hub?-6:Z.x,nz=Z.hub?-5:Z.z;g.position.set(nx,0,nz);
+ const l=label(Z.e+' '+Z.npc);l.position.y=5.6;g.add(l);const bang=label('❗ Soal!','#ff4f7b');bang.scale.set(3,.75,1);bang.position.y=7;g.add(bang);
+ return {g,Z,i,x:nx,z:nz,bang}});
+// zone signs
+ZONES.forEach(Z=>{const s=label(Z.e+' '+Z.n);s.scale.set(9,2.25,1);s.position.set(Z.hub?6:Z.x,7,Z.hub?6:Z.z);S.add(s)});
+// coins
+const coinG=new THREE.CylinderGeometry(.6,.6,.15,20),coinM=new THREE.MeshLambertMaterial({color:0xffd84a,emissive:0x664400});
+const cs=[];plats.forEach((p,i)=>{if(i%2||p.w<10&&Math.random()<.5)return;const c=new THREE.Mesh(coinG,coinM);c.rotation.x=Math.PI/2;c.position.set(p.x+(Math.random()-.5)*p.w*.6,1.5,p.z+(Math.random()-.5)*p.d*.6);S.add(c);cs.push(c)});
+for(let i=0;i<30;i++){const p=plats[Math.floor(Math.random()*plats.length)];const c=new THREE.Mesh(coinG,coinM);c.rotation.x=Math.PI/2;c.position.set(p.x,1.5,p.z);S.add(c);cs.push(c)}
+// particles
+const parts=[];function burst(x,y,z,n=40,cols=[0xff4f7b,0xffd84a,0x4fb3e8,0x7be38a,0xa77bff]){for(let i=0;i<n;i++){const m=box(.25,.25,.25,cols[i%cols.length],x,y,z);m.castShadow=false;parts.push({m,vx:(Math.random()-.5)*14,vy:Math.random()*12+4,vz:(Math.random()-.5)*14,life:1.4})}}
+// dizzy stars over head
+const dizzy=new THREE.Group();for(let i=0;i<3;i++){const s=box(.3,.3,.3,0xffd84a,Math.cos(i*2.1),0,Math.sin(i*2.1),dizzy);s.castShadow=false}dizzy.visible=false;P.add(dizzy);dizzy.position.y=4.6;let dizzyT=0;
+// ---- input
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key===' ')jump()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+let jx=0,jy=0,jid=null;const joy=$('joy'),knob=$('knob');
+joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);mv(e)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)mv(e)});
+const rel=()=>{jid=null;jx=jy=0;knob.style.left=knob.style.top='35px'};joy.addEventListener('pointerup',rel);joy.addEventListener('pointercancel',rel);
+function mv(e){const r=joy.getBoundingClientRect();let dx=e.clientX-r.left-60,dy=e.clientY-r.top-60;const d=Math.hypot(dx,dy);if(d>45){dx*=45/d;dy*=45/d}jx=dx/45;jy=dy/45;knob.style.left=35+dx+'px';knob.style.top=35+dy+'px'}
+$('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump()});
+function jump(){if(pv.ground&&playing){pv.vy=11;pv.ground=false;pv.squash=-.3}}
+// camera drag to orbit
+let camA=0,drag=null;R.domElement.addEventListener('pointerdown',e=>drag=e.clientX);addEventListener('pointerup',()=>drag=null);
+R.domElement.addEventListener('pointermove',e=>{if(drag!==null){camA-=(e.clientX-drag)*.008;drag=e.clientX}});
+// ---- audio (tiny beeps)
+let AC=null;function beep(f,d=.12,t='square'){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+// ---- quiz
+let cur=null,qi=0;
+function openQuiz(n){if(answered[n.i]>=n.Z.q.length)return;cur=n;playing=false;qi=answered[n.i]||0;showQ();$('quiz').style.display='flex';beep(660);beep(880,.15)}
+const TOTAL=ZONES.reduce((n,z)=>n+z.q.filter(q=>typeof q[2]==='number'&&q[2]>=0).length,0);const ans={};
+function showQ(){const Z=cur.Z,[q,o,a]=Z.q[qi];$('qt').textContent=Z.e+' '+Z.n+' ('+(qi+1)+'/'+Z.q.length+')';
+ $('qw').textContent=a==='g'?'🧑‍🏫 Guru pilih penilaian setelah murid membaca':Z.npc+' bertanya kepada '+nama+':';$('qq').textContent=q;$('qq').style.whiteSpace='pre-line';$('qf').textContent='';$('qc').style.display='none';
+ if(!o){$('qo').innerHTML='<input id="qi" placeholder="Tulis jawabanmu di sini" maxlength="40"><button>Kirim ✔</button>';
+  $('qo').lastChild.onclick=()=>{const v=$('qi').value.trim();if(!v){$('qi').focus();return}rec(v);$('qf').textContent=['Wah, keren! 😍','Asyik, makasih sudah cerita! 🤗','Mantap! 👍'][Math.random()*3|0];good();done()};return}
+ $('qo').innerHTML=o.map((t,i)=>'<button data-i="'+i+'">'+(a===-1||a==='g'?'':String.fromCharCode(65+i)+'. ')+esc(t)+'</button>').join('');
+ [...$('qo').children].forEach(b=>b.onclick=()=>pick(+b.dataset.i,a,o))}
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yay=['Hebat banget! 🎉','Mantap jiwa! 🤩','Kamu pintar! 🧠✨','Wuih keren! 🚀'],oops=['Ups, hampir! 🙈','Hihi, belum tepat 🌀','Aduh kepleset! 🍌'];
+function rec(v){(ans[cur.Z.n]=ans[cur.Z.n]||[]).push([cur.Z.q[qi][0].split('\n')[0],v])}
+function good(){beep(880);setTimeout(()=>beep(1320,.2),120);burst(pv.x,3,pv.z);cur.g.userData.happy=1.5}
+function done(){[...$('qo').querySelectorAll('button,input')].forEach(b=>b.disabled=true);answered[cur.i]=qi+1;$('qc').style.display='block'}
+function pick(i,a,o){const bs=[...$('qo').children];const Z=cur.Z;score[Z.n]=score[Z.n]||0;
+ if(a===-1||a==='g'){bs[i].className='ok';rec(o[i]);$('qf').textContent=a==='g'?'Terima kasih sudah membaca! 📖✨':'Makasih sudah jujur! 💛';good()}
+ else if(i===a){bs[i].className='ok';score[Z.n]++;stars++;$('stars').textContent=stars;rec('✅ benar');$('qf').textContent=yay[Math.random()*4|0];good()}
+ else{bs[i].className='no';bs[a].className='ok';rec('❌ jawab "'+o[i]+'" (benar: '+o[a]+')');$('qf').textContent=oops[Math.random()*3|0]+' Jawabannya: '+o[a];beep(180,.3,'sawtooth');dizzyT=2.5}
+ done()}
+$('qc').onclick=()=>{qi++;if(qi<cur.Z.q.length)showQ();else{$('quiz').style.display='none';playing=true;cur.bang.visible=false;burst(cur.x,4,cur.z,60);checkEnd()}};
+function checkEnd(){if(ZONES.every((z,i)=>answered[i]>=z.q.length)){playing=false;$('et').textContent='🏆 Selamat, '+nama+'!';$('ep').textContent='Kamu dapat '+stars+' dari '+TOTAL+' bintang dan '+coins+' koin.';
+ $('er').innerHTML='<b>📋 Catatan untuk guru — '+esc(nama)+'</b>'+[...ZONES].reverse().map(z=>'<div style="margin-top:8px"><b>'+z.e+' '+z.n+'</b>'+(ans[z.n]||[]).map(r=>'<div>• '+esc(r[0])+' → <b>'+esc(r[1])+'</b></div>').join('')+'</div>').join('');$('end').style.display='flex';for(let i=0;i<6;i++)setTimeout(()=>burst(pv.x,4,pv.z,50),i*300)}}
+$('go').onclick=()=>{const v=$('nama').value.trim();if(v)nama=v;$('start').style.display='none';playing=true;beep(523);setTimeout(()=>beep(784),120);setTimeout(()=>$('tip').style.opacity=0,6000)};
+// ---- loop
+function groundAt(x,z){for(const p of plats)if(Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2)return p.top;return null}
+function zoneName(){for(const Z of ZONES)if(!Z.hub&&Math.hypot(pv.x-Z.x,pv.z-Z.z)<9)return Z.e+' '+Z.n;return Math.hypot(pv.x,pv.z)<12?'🏝️ Pulau Utama':'🌉 Jembatan'}
+let t=0,last=performance.now(),walk=0;
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+ let ix=jx+((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),iz=jy+((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0);
+ if(!playing)ix=iz=0;const mag=Math.min(1,Math.hypot(ix,iz));const U=P.userData;
+ if(mag>.1){const sn=Math.sin(camA),co=Math.cos(camA);const wx=ix*co+iz*sn,wz=-ix*sn+iz*co;const sp=(dizzyT>0?4:9)*mag;
+  const ang=Math.atan2(wx,wz)+(dizzyT>0?Math.sin(t*9)*.6:0);pv.x+=Math.sin(ang)*sp*dt;pv.z+=Math.cos(ang)*sp*dt;
+  let d=ang-pv.ry;d=Math.atan2(Math.sin(d),Math.cos(d));pv.ry+=d*Math.min(1,dt*12);walk+=dt*sp*1.4}
+ const sw=mag>.1?Math.sin(walk)*.9:0;U.la.rotation.x=sw;U.ra.rotation.x=-sw;U.ll.rotation.x=-sw;U.rl.rotation.x=sw;
+ if(!pv.ground){U.la.rotation.z=-2.6;U.ra.rotation.z=2.6}else{U.la.rotation.z=U.ra.rotation.z=0}
+ pv.vy-=28*dt;pv.y+=pv.vy*dt;const g=groundAt(pv.x,pv.z);
+ if(g!==null&&pv.y<=g&&pv.y>g-1.5){if(!pv.ground){pv.squash=.35;if(pv.vy<-6)beep(220,.06)}pv.y=g;pv.vy=0;pv.ground=true}else if(pv.y>(g??-99)+.01)pv.ground=false;
+ if(pv.y<-25){pv.x=0;pv.z=4;pv.y=8;pv.vy=0;dizzyT=2;beep(120,.4,'sawtooth');$('tip').textContent='Wuaaa jatuh! Kembali ke pulau utama 🤸';$('tip').style.opacity=1;setTimeout(()=>$('tip').style.opacity=0,2500)}
+ pv.squash*=.85;const bob=mag>.1&&pv.ground?Math.abs(Math.sin(walk))*.25:Math.sin(t*2)*.05;
+ P.position.set(pv.x,pv.y+bob,pv.z);P.rotation.y=pv.ry;P.scale.set(1+pv.squash*.5,1-pv.squash,1+pv.squash*.5);U.hd.rotation.z=Math.sin(t*3)*.08;
+ dizzyT-=dt;dizzy.visible=dizzyT>0;dizzy.rotation.y+=dt*6;
+ // npcs
+ npcs.forEach(n=>{const u=n.g.userData;u.happy=Math.max(0,(u.happy||0)-dt);const h=u.happy>0;
+  n.g.position.y=Math.abs(Math.sin(t*(h?10:3)+n.i))*(h?1.6:.6);n.g.rotation.y=Math.atan2(pv.x-n.x,pv.z-n.z);
+  u.la.rotation.z=-1-Math.abs(Math.sin(t*(h?14:4)))*1.2;u.ra.rotation.z=h?1+Math.abs(Math.sin(t*14)):.2;u.hd.rotation.z=Math.sin(t*2+n.i)*.2;
+  n.bang.position.y=7+Math.sin(t*5)*.3;
+  if(playing&&Math.hypot(pv.x-n.x,pv.z-n.z)<2.6&&Math.abs(pv.y-0)<2)openQuiz(n)});
+ // coins
+ for(let i=cs.length-1;i>=0;i--){const c=cs[i];c.rotation.z+=dt*4;c.position.y=1.5+Math.sin(t*3+i)*.3;
+  if(Math.hypot(pv.x-c.position.x,pv.z-c.position.z)<1.4&&Math.abs(pv.y+1.5-c.position.y)<2){S.remove(c);cs.splice(i,1);coins++;$('coins').textContent=coins;beep(988,.08);setTimeout(()=>beep(1318,.1),70);burst(c.position.x,1.5,c.position.z,10,[0xffd84a,0xffffff])}}
+ for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy-=25*dt;p.m.position.x+=p.vx*dt;p.m.position.y+=p.vy*dt;p.m.position.z+=p.vz*dt;p.m.rotation.x+=dt*8;p.life-=dt;if(p.life<=0){S.remove(p.m);parts.splice(i,1)}}
+ clouds.forEach((c,i)=>{c.position.x+=dt*(1+i%3*.5);if(c.position.x>90)c.position.x=-90});
+ if(playing&&mag<.1&&drag===null){let d=(pv.ry+Math.PI)-camA;d=Math.atan2(Math.sin(d),Math.cos(d));}
+ const cx=pv.x+Math.sin(camA)*13,cz=pv.z+Math.cos(camA)*13;cam.position.lerp(new THREE.Vector3(cx,pv.y+8,cz),.1);cam.lookAt(pv.x,pv.y+2.5,pv.z);
+ const zn=zoneName();if($('zone').textContent!==zn)$('zone').textContent=zn;
+ R.render(S,cam);requestAnimationFrame(loop)}
+function rs(){R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+$('tot').textContent=TOTAL;requestAnimationFrame(loop);
+}</script></body></html>
